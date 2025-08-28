@@ -158,7 +158,7 @@ This is perhaps an extreme test case, but it was contrived as a stress test of s
 
 (Notably, the actual `bam_to_fastq` task in `samtools.wdl` ([here](https://github.com/stjudecloud/workflows/blob/main/tools/samtools.wdl#L763)) does not have a `bam_index` input, but that was added to this example for illustrative purposes)
 
-TODO(Ari): I can write more examples of "real" TOML test files, as presumably we will be switching the `workflows` repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don't be afraid to ask for more examples! I just didn't want to overload this document ;D
+REVIEWERS: I can write more examples of "real" TOML test files, as presumably we will be switching the `workflows` repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don't be afraid to ask for more examples! I just didn't want to overload this document ;D
 
 ## Configuration
 
@@ -167,7 +167,7 @@ Both of the expected paths, `tests/` and `fixtures/` within `tests/`, can be ove
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
-TODO(Ari): is this section needed?
+REVIEWERS: is this section needed?
 
 -----
 
@@ -191,7 +191,7 @@ To be serious, `pytest-workflows` seems to be the best test framework for WDL th
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-TODO(Ari): I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I _didn't like_ are. I can expand on this section if it would be informative, but I am leaving the below questions unanswered for now.
+REVIEWERS: I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I _didn't like_ are. I can expand on this section if it would be informative, but I am leaving the below questions unanswered for now.
 
 - Why is this design the best in the space of possible designs?
 - What other designs have been considered and what is the rationale for not choosing them?
