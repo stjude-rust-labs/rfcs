@@ -1,0 +1,5 @@
+[book]
+authors = ["St. Jude Rust Labs"]
+multilingual = false
+src = "src"
+title = "St. Jude Rust Labs RFCs"
