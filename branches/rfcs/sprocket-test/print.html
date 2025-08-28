@@ -194,7 +194,7 @@ disclaimer</a> that applies to all
 crates and command line tools made available by St. Jude Rust Labs.</p>
 <p>Copyright © 2023-Present <a href="https://github.com/stjude">St. Jude Children's Research Hospital</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="placeholder"><a class="header" href="#placeholder">Placeholder</a></h1>
-<p>We need a document here for the CI, but there are not currently any "accepted" RFCs.</p>
+<p>We need a document here for the build, but there are not currently any "accepted" RFCs.</p>
 <div style="break-before: page; page-break-before: always;"></div><ul>
 <li>Feature Name: sprocket-test</li>
 <li>Start Date: 2025-08</li>
@@ -339,11 +339,11 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 </code></pre>
 <p>This is perhaps an extreme test case, but it was contrived as a stress test of sorts for the matrix design. In ~30 lines of TOML, this defines <code>3*2*2*2*2*2 = 96</code> different permutations of the <code>bam_to_fastq</code> task that should be executed by Sprocket. This specific case may be too intense to run in a CI environment, but should demonstrate the power of test matrices in aiding comprehensive testing without undue boilerplate.</p>
 <p>(Notably, the actual <code>bam_to_fastq</code> task in <code>samtools.wdl</code> (<a href="https://github.com/stjudecloud/workflows/blob/main/tools/samtools.wdl#L763">here</a>) does not have a <code>bam_index</code> input, but that was added to this example for illustrative purposes)</p>
-<p>TODO(Ari): I can write more examples of "real" TOML test files, as presumably we will be switching the <code>workflows</code> repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don't be afraid to ask for more examples! I just didn't want to overload this document ;D</p>
+<p>REVIEWERS: I can write more examples of "real" TOML test files, as presumably we will be switching the <code>workflows</code> repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don't be afraid to ask for more examples! I just didn't want to overload this document ;D</p>
 <h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>Both of the expected paths, <code>tests/</code> and <code>fixtures/</code> within <code>tests/</code>, can be overriden via config. <code>tests/</code> conflicts with <code>pytest-workflows</code>, so users may want to rename the default Sprocket test directory to something like <code>sprocket-tests/</code>. It is unlikely that anyone will be writing WDL that needs to be tested at a <code>fixtures/</code> path, but this should also be configurable to avoid that potential clash.</p>
 <h1 id="reference-level-explanation"><a class="header" href="#reference-level-explanation">Reference-level explanation</a></h1>
-<p>TODO(Ari): is this section needed?</p>
+<p>REVIEWERS: is this section needed?</p>
 <hr />
 <p>This is the technical portion of the RFC. Explain the design in sufficient detail that:</p>
 <ul>
@@ -357,7 +357,7 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 <p>A: <em>none!</em> This is a great idea!</p>
 <p>To be serious, <code>pytest-workflows</code> seems to be the best test framework for WDL that I've been able to find as a WDL author, and as a user of that framework, I'm not happy. I have a few specific gripes I can get into, but for brevity I will avoid rambling here :)</p>
 <h1 id="rationale-and-alternatives"><a class="header" href="#rationale-and-alternatives">Rationale and alternatives</a></h1>
-<p>TODO(Ari): I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I <em>didn't like</em> are. I can expand on this section if it would be informative, but I am leaving the below questions unanswered for now.</p>
+<p>REVIEWERS: I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I <em>didn't like</em> are. I can expand on this section if it would be informative, but I am leaving the below questions unanswered for now.</p>
 <ul>
 <li>Why is this design the best in the space of possible designs?</li>
 <li>What other designs have been considered and what is the rationale for not choosing them?</li>
