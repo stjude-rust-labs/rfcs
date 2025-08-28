@@ -4,6 +4,8 @@
 
 This repo structure and contents are ~~stolen~~ borrowed from the [St. Jude Cloud Team's `rfcs` repo](https://github.com/stjudecloud/rfcs).
 
+RFC template is largely ~~stolen~~ inspired by the [rust-lang template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md).
+
 ## Install
 
 ```sh
