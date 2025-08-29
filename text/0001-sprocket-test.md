@@ -164,6 +164,12 @@ REVIEWERS: I can write more examples of "real" TOML test files, as presumably we
 
 Both of the expected paths, `tests/` and `fixtures/` within `tests/`, can be overriden via config. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`. It is unlikely that anyone will be writing WDL that needs to be tested at a `fixtures/` path, but this should also be configurable to avoid that potential clash.
 
+## Test Filtering
+
+Users will be able to annotate each test with arbitrary tags which will allow them to run subsets of the entire test suite. They will also be able to run the tests in a specific file, as opposed to the default `sprocket test` behavior which will be to recurse the `test` directory and run all found tests. This will facilitate a variety of applications, most notably restricting the run to only what the developer knows has changed and parallelizing CI runs.
+
+We may also want to give some tags special meaning: it is common to annotate "slow" tests and to exclude them from runs by default and we may want to make reduce friction in configuring that case. 
+
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
