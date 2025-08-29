@@ -162,7 +162,7 @@ REVIEWERS: I can write more examples of "real" TOML test files, as presumably we
 
 ## Configuration
 
-Both of the expected paths, `tests/` and `fixtures/` within `tests/`, can be overriden via config. `tests/` conflicts with `pytest-workflows`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`. It is unlikely that anyone will be writing WDL that needs to be tested at a `fixtures/` path, but this should also be configurable to avoid that potential clash.
+Both of the expected paths, `tests/` and `fixtures/` within `tests/`, can be overriden via config. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`. It is unlikely that anyone will be writing WDL that needs to be tested at a `fixtures/` path, but this should also be configurable to avoid that potential clash.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
@@ -186,7 +186,7 @@ Q: Why should we *not* do this?
 
 A: _none!_ This is a great idea!
 
-To be serious, `pytest-workflows` seems to be the best test framework for WDL that I've been able to find as a WDL author, and as a user of that framework, I'm not happy. I have a few specific gripes I can get into, but for brevity I will avoid rambling here :)
+To be serious, `pytest-workflow` seems to be the best test framework for WDL that I've been able to find as a WDL author, and as a user of that framework, I think WDL could use something more tailored. I will elaborate further in [Prior Art](#prior-art).
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
@@ -200,9 +200,17 @@ REVIEWERS: I've thought through quite a wide variety of implementations that hav
 # Prior art
 [prior-art]: #prior-art
 
-Discuss prior art, both the good and the bad, in relation to this proposal.
+This document has been largely informed by my experience as a WDL author and maintainer of the [stjudecloud/workflows](https://github.com/stjudecloud/workflows) repository. The CI of that repo uses `pytest-workflow`.
 
-TODO(Ari): populate this with some links to existing frameworks and add some basic comments on them
+TODO(Ari): populate this with more links to existing frameworks and add some basic comments on them
+
+## `pytest-workflow`
+
+[`pytest-workflow`](https://github.com/lumc/pytest-workflow/) has been a great stop-gap tool for us. It is a generalized test framework not specific to WDL, which is ultimately what makes it unwieldly for our use cases. The WDL community should have a better solution than a generic test framework.
+
+That said, if you are familiar with pytest-workflow, you will likely see some similarities between it and my proposal. I've leaned on the existing designs used in pytest-workflow, and made them more specific and ergonomic for WDL.
+
+REVIEWERS: I can elaborate further if asked
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
