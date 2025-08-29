@@ -322,6 +322,9 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 <p>REVIEWERS: I can write more examples of "real" TOML test files, as presumably we will be switching the <code>workflows</code> repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don't be afraid to ask for more examples! I just didn't want to overload this document ;D</p>
 <h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
 <p>Both of the expected paths, <code>tests/</code> and <code>fixtures/</code> within <code>tests/</code>, can be overriden via config. <code>tests/</code> conflicts with <code>pytest-workflow</code>, so users may want to rename the default Sprocket test directory to something like <code>sprocket-tests/</code>. It is unlikely that anyone will be writing WDL that needs to be tested at a <code>fixtures/</code> path, but this should also be configurable to avoid that potential clash.</p>
+<h2 id="test-filtering"><a class="header" href="#test-filtering">Test Filtering</a></h2>
+<p>Users will be able to annotate each test with arbitrary tags which will allow them to run subsets of the entire test suite. They will also be able to run the tests in a specific file, as opposed to the default <code>sprocket test</code> behavior which will be to recurse the <code>test</code> directory and run all found tests. This will facilitate a variety of applications, most notably restricting the run to only what the developer knows has changed and parallelizing CI runs.</p>
+<p>We may also want to give some tags special meaning: it is common to annotate "slow" tests and to exclude them from runs by default and we may want to make reduce friction in configuring that case.</p>
 <h1 id="reference-level-explanation"><a class="header" href="#reference-level-explanation">Reference-level explanation</a></h1>
 <p>REVIEWERS: is this section needed?</p>
 <hr />
@@ -370,6 +373,8 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 <p>We could explore an alternative syntax that allows test inputs to be defined separately from the test.</p>
 <h2 id="e2e-testing"><a class="header" href="#e2e-testing">E2E testing</a></h2>
 <p>As stated in the "motivation" section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)</p>
+<h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
+<p>At the time of writing, Sprocket does not yet have a call caching feature. But once that feature lands, it will prove useful for this framework as a way to reduce runtime on subsequent test runs.</p>
 
                     </main>
 
