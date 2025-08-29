@@ -227,9 +227,28 @@ This is just a WDL repo, not a full test framework, but they do have a bespoke C
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
+## Builtin tests
+
 I think there's a lot of room for growth in the builtin test conditions. This document just has what I think are about appropriate for an initial release (i.e. are relatively easy to implement), but that shouldn't be the end of the builtin tests. I can imagine us writing bioinformatics specific tests using the `noodles` library for testing things like "is this output file a valid BAM?", "is this BAM coordinate sorted?", "is the output BAI file correctly matched to the output BAM?", and many many more such tests.
+
+## Custom tests
 
 Another possibility we may even want to expose in an initial relase (so move from "Future possibilities" to a more prominent section of this RFC) would be custom tests. There are a couple of directions I've considered for this, and I think the most logical jumping off point would be to let users write shell scripts that are invoked with ENV vars set with the outputs of a task or workflow, and let them do whatever the heck tests they want to write in Bash and just ensure the exit code of the script is `0`. This seems to me the best ROI from an implementation standpoint. It would be pretty easy to set up and shell out, and would allow users to write arbitrarily complicated tests using whatever tools they want.
 
-As stated in the "motivation" section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)
+## Validating other engines
 
+First off, I don't think this is something we want to pursue within Sprocket, but I didn't want to leave the possibility undiscussed.
+
+Supporting multiple engines/runners/environments/etc. is valuable and something many WDL authors are looking for. In the `workflows` repo, we currently validate our tasks with both `sprocket run` and `miniwdl run`; ideally we'd like to expand that to include others as well, but it is tricky to get running smoothly.
+
+To be blunt, I think this is out of scope for what Sprocket should be focusing on. An existing "generalized" framework (like pytest-workflow) would be better suited for this kind of validation.
+
+## Individual test files
+
+An annoyance for me while working on the `workflows` CI (with pytest-workflow) is that I often have to write individual input JSON files that are then pointed to in the test definition with a relative path. This meant opening two files to figure out what a test was doing; and the pathing was a pain due to our repo structure and the differing path resolution of Sprocket and miniwdl. This proposal aimed to keep all the relevant test information colocated in a single TOML table, but that does create a restriction where the inputs can't be trivially used in a different context.
+
+We could explore an alternative syntax that allows test inputs to be defined separately from the test. 
+
+## E2E testing
+
+As stated in the "motivation" section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)
