@@ -258,3 +258,7 @@ We could explore an alternative syntax that allows test inputs to be defined sep
 ## E2E testing
 
 As stated in the "motivation" section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)
+
+## Caching
+
+At the time of writing, Sprocket does not yet have a call caching feature. But once that feature lands, it will prove useful for this framework as a way to reduce runtime on subsequent test runs.
