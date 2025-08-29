@@ -202,8 +202,6 @@ REVIEWERS: I've thought through quite a wide variety of implementations that hav
 
 This document has been largely informed by my experience as a WDL author and maintainer of the [stjudecloud/workflows](https://github.com/stjudecloud/workflows) repository. The CI of that repo uses `pytest-workflow`.
 
-TODO(Ari): populate this with more links to existing frameworks and add some basic comments on them
-
 ## `pytest-workflow`
 
 [`pytest-workflow`](https://github.com/lumc/pytest-workflow/) has been a great stop-gap tool for us. It is a generalized test framework not specific to WDL, which is ultimately what makes it unwieldly for our use cases. The WDL community should have a better solution than a generic test framework.
@@ -211,6 +209,20 @@ TODO(Ari): populate this with more links to existing frameworks and add some bas
 That said, if you are familiar with pytest-workflow, you will likely see some similarities between it and my proposal. I've leaned on the existing designs used in pytest-workflow, and made them more specific and ergonomic for WDL.
 
 REVIEWERS: I can elaborate further if asked
+
+## [wdl-ci](https://github.com/DNAstack/wdl-ci)
+
+I found this tool while looking for existing frameworks when starting this document; which is to say it's new to me and I have not tried running it, but it has some interesting capabilities.
+
+This is _not_ a unit testing framework, and looks geared towards system testing or end-to-end testing, or whatever term you want to use for ensuring _consistency and reproducibility_ while developing a workflow. Definitely something worth revisiting when we circle back to that use case, but at the moment this is just designed for a different use than my proposal.
+
+## [pytest-wdl](https://github.com/EliLillyCo/pytest-wdl)
+
+Last update was 4 years ago, which we on the `workflows` repo considered a deal breaker when we were iniitally shopping for CI testing. It seems very similar to pytest-workflow, at least on the surface, (of course they are both plugins to the popular pytest framework) but admittedly I have not dove very deep into this project.
+
+## [CZ ID repo](https://github.com/chanzuckerberg/czid-workflows/tree/main?tab=readme-ov-file#cicd)
+
+This is just a WDL repo, not a full test framework, but they do have a bespoke CI/CD set up that I reviewed. Uses miniwdl under the hood and seems worth mentioning, but not a generalizable approach.
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
