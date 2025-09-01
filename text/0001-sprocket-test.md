@@ -117,6 +117,39 @@ Some tests that might exist at initial release:
 
 The above is probably (about) sufficient for an initial release. Thoughts about future tests that could exist will be discussed further down this document.
 
+## Custom tests
+
+While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a path to a user-written script. The script will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked script exits with a code of zero, the test will be considered as passed. 
+
+### Example
+
+`tests/tools/picard.toml`
+```toml
+[[merge_sam_files]]
+name = "Merge works"
+[merge_sam_files.inputs]
+bams = [
+    "$FIXTURES/test1.bam",
+    "$FIXTURES/test2.bam",
+]
+prefix = "test.merged"
+[merge_sam_files.tests]
+custom = "quickcheck.sh"
+```
+
+Sprocket will look for an executable file named `quickcheck.sh` in the `tests/custom/` directory. That file could contain any arbitrary code, such as:
+```bash
+#!/bin/bash
+
+set -euo pipefail
+
+out_json=$1
+
+out_bam=$(jq -r .bam "$out_json")
+
+samtools quickcheck "$out_bam"
+```
+
 ## Test Matrices
 
 Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate test definitions. A test matrix is created by defining a `matrix` TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. An example for a `bam_to_fastq` task might look like:
@@ -236,10 +269,6 @@ This is just a WDL repo, not a full test framework, but they do have a bespoke C
 ## Builtin tests
 
 I think there's a lot of room for growth in the builtin test conditions. This document just has what I think are about appropriate for an initial release (i.e. are relatively easy to implement), but that shouldn't be the end of the builtin tests. I can imagine us writing bioinformatics specific tests using the `noodles` library for testing things like "is this output file a valid BAM?", "is this BAM coordinate sorted?", "is the output BAI file correctly matched to the output BAM?", and many many more such tests.
-
-## Custom tests
-
-Another possibility we may even want to expose in an initial relase (so move from "Future possibilities" to a more prominent section of this RFC) would be custom tests. There are a couple of directions I've considered for this, and I think the most logical jumping off point would be to let users write shell scripts that are invoked with ENV vars set with the outputs of a task or workflow, and let them do whatever the heck tests they want to write in Bash and just ensure the exit code of the script is `0`. This seems to me the best ROI from an implementation standpoint. It would be pretty easy to set up and shell out, and would allow users to write arbitrarily complicated tests using whatever tools they want.
 
 ## Validating other engines
 
