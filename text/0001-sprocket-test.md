@@ -150,6 +150,8 @@ out_bam=$(jq -r .bam "$out_json")
 samtools quickcheck "$out_bam"
 ```
 
+See the [rationale section](#rationale-and-alternatives) for an explanation of this design.
+
 ## Test Matrices
 
 Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate test definitions. A test matrix is created by defining a `matrix` TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. An example for a `bam_to_fastq` task might look like:
@@ -236,6 +238,14 @@ REVIEWERS: I've thought through quite a wide variety of implementations that hav
 - What other designs have been considered and what is the rationale for not choosing them?
 - What is the impact of not doing this?
 
+## Custom testing rationale
+
+The custom test design is meant to maximize flexibility without adding implementation complexity. The implementation proposed couldn't be much simpler: simply invoke an arbitrary executable with a single positional argument, expect an exit code of zero and anything else is a failed test.
+
+This child process will inherit the parent process's environment, and it will ultimately be up to test authors for ensuring their test environment and dependencies are correct. This may lead to debugging difficulties, and Sprocket will be able to offer very little help with what's going on (aside from forwarding the STDOUT and STDERR streams).
+
+This is a large drawback of the design, but I believe the flexibility offered here is worth those pains. Users can drop shell scripts, Python scripts, bespoke Rust binaries, or anything else using any framework they want, so long as it has a `+x` bit and can process a positional argument. 
+
 # Prior art
 [prior-art]: #prior-art
 
@@ -283,6 +293,10 @@ To be blunt, I think this is out of scope for what Sprocket should be focusing o
 An annoyance for me while working on the `workflows` CI (with pytest-workflow) is that I often have to write individual input JSON files that are then pointed to in the test definition with a relative path. This meant opening two files to figure out what a test was doing; and the pathing was a pain due to our repo structure and the differing path resolution of Sprocket and miniwdl. This proposal aimed to keep all the relevant test information colocated in a single TOML table, but that does create a restriction where the inputs can't be trivially used in a different context.
 
 We could explore an alternative syntax that allows test inputs to be defined separately from the test. 
+
+## Integration of custom tests
+
+The current proposal for custom tests is pretty brarebones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executable scripts, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that. 
 
 ## E2E testing
 
