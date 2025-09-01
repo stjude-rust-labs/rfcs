@@ -331,6 +331,7 @@ out_bam=$(jq -r .bam "$out_json")
 
 samtools quickcheck "$out_bam"
 </code></pre>
+<p>See the <a href="0001-sprocket-test.html#rationale-and-alternatives">rationale section</a> for an explanation of this design.</p>
 <h2 id="test-matrices"><a class="header" href="#test-matrices">Test Matrices</a></h2>
 <p>Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate test definitions. A test matrix is created by defining a <code>matrix</code> TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. An example for a <code>bam_to_fastq</code> task might look like:</p>
 <pre><code class="language-toml">[[bam_to_fastq]]
@@ -393,6 +394,10 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 <li>What other designs have been considered and what is the rationale for not choosing them?</li>
 <li>What is the impact of not doing this?</li>
 </ul>
+<h2 id="custom-testing-rationale"><a class="header" href="#custom-testing-rationale">Custom testing rationale</a></h2>
+<p>The custom test design is meant to maximize flexibility without adding implementation complexity. The implementation proposed couldn't be much simpler: simply invoke an arbitrary executable with a single positional argument, expect an exit code of zero and anything else is a failed test.</p>
+<p>This child process will inherit the parent process's environment, and it will ultimately be up to test authors for ensuring their test environment and dependencies are correct. This may lead to debugging difficulties, and Sprocket will be able to offer very little help with what's going on (aside from forwarding the STDOUT and STDERR streams).</p>
+<p>This is a large drawback of the design, but I believe the flexibility offered here is worth those pains. Users can drop shell scripts, Python scripts, bespoke Rust binaries, or anything else using any framework they want, so long as it has a <code>+x</code> bit and can process a positional argument.</p>
 <h1 id="prior-art"><a class="header" href="#prior-art">Prior art</a></h1>
 <p>This document has been largely informed by my experience as a WDL author and maintainer of the <a href="https://github.com/stjudecloud/workflows">stjudecloud/workflows</a> repository. The CI of that repo uses <code>pytest-workflow</code>.</p>
 <h2 id="pytest-workflow"><a class="header" href="#pytest-workflow"><code>pytest-workflow</code></a></h2>
@@ -416,6 +421,8 @@ prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permut
 <h2 id="individual-test-files"><a class="header" href="#individual-test-files">Individual test files</a></h2>
 <p>An annoyance for me while working on the <code>workflows</code> CI (with pytest-workflow) is that I often have to write individual input JSON files that are then pointed to in the test definition with a relative path. This meant opening two files to figure out what a test was doing; and the pathing was a pain due to our repo structure and the differing path resolution of Sprocket and miniwdl. This proposal aimed to keep all the relevant test information colocated in a single TOML table, but that does create a restriction where the inputs can't be trivially used in a different context.</p>
 <p>We could explore an alternative syntax that allows test inputs to be defined separately from the test.</p>
+<h2 id="integration-of-custom-tests"><a class="header" href="#integration-of-custom-tests">Integration of custom tests</a></h2>
+<p>The current proposal for custom tests is pretty brarebones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executable scripts, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that.</p>
 <h2 id="e2e-testing"><a class="header" href="#e2e-testing">E2E testing</a></h2>
 <p>As stated in the "motivation" section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)</p>
 <h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
