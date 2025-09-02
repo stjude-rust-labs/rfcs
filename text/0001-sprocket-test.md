@@ -11,7 +11,9 @@ This framework can maximize test depth without adding boilerplate by allowing us
 # Motivation
 [motivation]: #motivation
 
-Comprehensive unit testing is a key component of modern software development. Any serious project should endeavor to have a suite of tests that ensure code correctness. These tests should be lightweight enough to run during continuous integration on every set of committed changes. (This RFC is primarily focused on CI unit testing, but enabling larger scale "end-to-end" testing is something that should be kept in mind during this design process. That said, I'm of the opinion these are separate enough use cases that they can be approached with differing APIs, and thus decisions made here should not impact any future E2E testing API too heavily.) 
+Comprehensive unit testing is a key component of modern software development. Any serious project should endeavor to have a suite of tests that ensure code correctness. These tests should be lightweight enough to run during continuous integration on every set of committed changes.
+
+n.b.: This RFC is primarily focused on CI unit testing, but enabling larger scale "end-to-end" testing is something that should be kept in mind during this design process. That said, I'm of the opinion these are separate enough use cases that they can be approached with differing APIs, and thus decisions made here should not impact any future E2E testing API too heavily.
 
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
@@ -20,27 +22,26 @@ The Sprocket test framework is primarily specified in TOML, which is expected to
 
 The `tests/` directory is expected to mirror the WDL workspace, where it should have the same path structure, but with `.wdl` file extensions replaced by `.toml` extensions. The TOML files contain tests for tasks and workflows defined at their respective WDL counterpart in the main workspace. e.g. a WDL file located at `data_structures/flag_filter.wdl` would have accompanying tests defined in `tests/data_structures/flag_filter.toml`. Following this structure frees the TOML from having to contain any information about _where_ to find the entrypoints of each test. All the test entrypoints (tasks or workflows) in `tests/data_structures/flag_filter.toml` are expected to be defined in the WDL located at `data_structures/flag_filter.wdl`.
 
-Any task or worklow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `tests/data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the key `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. Under each of these headers will be a TOML table with all the required information for a single test.
+Any task or worklow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `tests/data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the header `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. Under each of these headers will be a TOML table with all the required information for a single test.
 
 An example TOML for specifying a suite of tests for [the `flag_filter.wdl` document in the `workflows` repo](https://github.com/stjudecloud/workflows/blob/main/data_structures/flag_filter.wdl) would look like:
 
 ```toml
 [[validate_string_is_12bit_int]]
-name = "decimal passes" # each test must have a unique name
-[validate_string_is_12bit_int.inputs] # table of inputs
+name = "decimal_passes" # each test must have a unique identifier
+[validate_string_is_12bit_int.inputs]
 number = "5"
-# without any tests explicitely configured, Sprocket will consider the task executing with a 0 exit code to be a "pass" and any non-zero exit code as a "fail"
+# without any tests explicitly configured, Sprocket will consider the task executing with a 0 exit code to be a "pass" and any non-zero exit code as a "fail"
 
 [[validate_string_is_12bit_int]]
-name = "hexadecimal passes"
+name = "hexadecimal_passes"
 [validate_string_is_12bit_int.inputs]
 number = "0x900"
-[validate_string_is_12bit_int.tests] # table of test conditions
-exit_code = 0 # redundant and not needed explicitly
+[validate_string_is_12bit_int.tests]
 stdout.contains = "Input number (0x900) is valid" # builtin test for checking STDOUT logs
 
 [[validate_string_is_12bit_int]]
-name = "too big hexadecimal fails"
+name = "too_big_hexadecimal_fails"
 [validate_string_is_12bit_int.inputs]
 number = "0x1000"
 [validate_string_is_12bit_int.tests]
@@ -48,7 +49,7 @@ exit_code = 42 # the task should fail for this test
 stderr.contains = "Input number (0x1000) is invalid" # similar to the stdout test
 
 [[validate_string_is_12bit_int]]
-name = "too big decimal fails"
+name = "too_big_decimal_fails"
 [validate_string_is_12bit_int.inputs]
 number = "4096"
 [validate_string_is_12bit_int.tests]
@@ -56,10 +57,10 @@ exit_code = 42
 stderr.contains = [
     "Input number (4096) interpreted as decimal",
     "But number must be less than 4096!",
-] # a test which is a bit more complicated
+] # `contains` test can also be an array of strings
 
 [[validate_flag_filter]] # a workflow test
-name = "Valid FlagFilter passes"
+name = "valid_FlagFilter_passes"
 [validate_flag_filter.inputs.flags]
 include_if_all = "3" # decimal
 exclude_if_any = "0xF04" # hexadecimal
@@ -67,7 +68,7 @@ include_if_any = "03" # octal
 exclude_if_all = "4095" # decimal
 
 [[validate_flag_filter]]
-name = "Invalid FlagFilter fails"
+name = "invalid_FlagFilter_fails"
 [validate_flag_filter.inputs.flags]
 include_if_all = "" # empty string
 exclude_if_any = "this is not a number"
@@ -77,11 +78,11 @@ exclude_if_all = "4095" # this is fine
 should_fail = true
 ```
 
-Hopefully, everything in the above TOML is easily enough grokked that I won't spend time going through the specifics in much detail. The `flag_filter.wdl` WDL document contains a task and a workflow, both with minimal inputs and no outputs, making the tests fairly straightforward. One of Sprocket's guiding principles is to only introduce complexity where it's warranted, and I hope that this example demonstrates a case where complexity is _not_ warranted. Next, we will be discussing features intended for allowing test cases that are more complex, but the end API exposed to users (the focus of this document) still aims to maintain simplicity and inuitiveness. 
+Hopefully, everything in the above TOML is easily enough grokked that I won't spend time going through the specifics in much detail. The `flag_filter.wdl` WDL document contains a task and a workflow, both with minimal inputs and no outputs, making the tests fairly straightforward. One of Sprocket's guiding principles is to only introduce complexity where it's warranted, and I hope that this example demonstrates a case where complexity is _not_ warranted. Next, we will be discussing features intended for allowing test cases that are more complex, but the end API exposed to users (the focus of this document) still aims to maintain simplicity and intuitiveness. 
 
 ## Test Data
 
-Most WDL tasks and workflows have `File` type inputs and outputs, so there should be an easy way to incorporate test files into the framework. This can be accomplished with a `tests/fixtures/` directory that can be referred to from any TOML test in the `tests` directory. If the string `$FIXTURES` is found within a TOML string value within the `inputs` table, the correct path to the `fixtures` directory will be dynamically inserted at test run time. This avoids having to track relative paths from TOML that may be arbitrarily nested in relation to test data. For example, let's assume there are `test.bam`, `test.bam.bai`, and `referece.fa.gz` files located within the `tests/fixtures/` directory; the following TOML `inputs` table could be used regardless of where that acutal `.toml` file resides within the `tests/` directory:
+Most WDL tasks and workflows have `File` type inputs and outputs, so there should be an easy way to incorporate test files into the framework. This can be accomplished with a `tests/fixtures/` directory that can be referred to from any TOML test in the `tests` directory. If the string `$FIXTURES` is found within a TOML string value within the `inputs` table, the correct path to the `fixtures` directory will be dynamically inserted at test run time. This avoids having to track relative paths from TOML that may be arbitrarily nested in relation to test data. For example, let's assume there are `test.bam`, `test.bam.bai`, and `reference.fa.gz` files located within the `tests/fixtures/` directory; the following TOML `inputs` table could be used regardless of where that actual `.toml` file resides within the `tests/` directory:
 
 ```toml
 bam = "$FIXTURES/test.bam"
@@ -101,7 +102,7 @@ Some tests that might exist at initial release:
     - `contains = <string | array of strings>`: strings are REs
     - `not_contains = <string | array of strings>`: strings are REs
 - `stderr`: functionally equivalent to the `stdout` tests, but runs on the STDERR log instead
-- `outputs`: a TOML table populated with task or workflow output indentifiers. The specific tests available will depend on the WDL type of the specified output
+- `outputs`: a TOML table populated with task or workflow output identifiers. The specific tests available will depend on the WDL type of the specified output
     - `<WDL Boolean> = <true|false>`
     - `<WDL Int> = <TOML int>`
     - `<WDL Float> = <TOML float>`
@@ -115,11 +116,13 @@ Some tests that might exist at initial release:
         - `contains = <string | array of strings>`: REs to expect (implies the file is ASCII and will fail if in another encoding)
         - `not_contains = <string | array of strings>`: inverse of `contains`
 
-The above is probably (about) sufficient for an initial release. Thoughts about future tests that could exist will be discussed further down this document.
+The above is probably (about) sufficient for an initial release. Thoughts about future tests that could exist will be discussed in the ["Future possibilities"](#future-possibilities) section.
 
 ## Custom tests
 
-While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a path to a user-written script. The script will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked script exits with a code of zero, the test will be considered as passed. 
+While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a name or array of names of user-written supplied executables (most commonly shell or Python scripts) which are expected to be found in a `tests/custom/` directory. These executables will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.
+
+For further discussion of why this design was chosen, see the [rationale section](#rationale-and-alternatives).
 
 ### Example
 
@@ -150,15 +153,13 @@ out_bam=$(jq -r .bam "$out_json")
 samtools quickcheck "$out_bam"
 ```
 
-See the [rationale section](#rationale-and-alternatives) for an explanation of this design.
-
 ## Test Matrices
 
 Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate test definitions. A test matrix is created by defining a `matrix` TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. An example for a `bam_to_fastq` task might look like:
 
 ```toml
 [[bam_to_fastq]]
-name = "Kitchen Sink"
+name = "kitchen_sink"
 [[bam_to_fastq.matrix]]
 bam = [
     "$FIXTURES/test1.bam",
@@ -197,7 +198,7 @@ REVIEWERS: I can write more examples of "real" TOML test files, as presumably we
 
 ## Configuration
 
-Both of the expected paths, `tests/` and `fixtures/` within `tests/`, can be overriden via config. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`. It is unlikely that anyone will be writing WDL that needs to be tested at a `fixtures/` path, but this should also be configurable to avoid that potential clash.
+All of the expected paths, `tests/`, `fixtures/`, and `custom/`, will be configurable. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`.
 
 ## Test Filtering
 
@@ -223,7 +224,7 @@ The section should return to the examples given in the previous section, and exp
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Q: Why should we *not* do this?
+Q: What are reasons we should we *not* do this?
 
 A: _none!_ This is a great idea!
 
@@ -232,11 +233,7 @@ To be serious, `pytest-workflow` seems to be the best test framework for WDL tha
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-REVIEWERS: I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I _didn't like_ are. I can expand on this section if it would be informative, but I am leaving the below questions unanswered for now.
-
-- Why is this design the best in the space of possible designs?
-- What other designs have been considered and what is the rationale for not choosing them?
-- What is the impact of not doing this?
+REVIEWERS: I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I _didn't like_ are. I can expand on this section if it would be informative.
 
 ## Custom testing rationale
 
@@ -267,7 +264,7 @@ This is _not_ a unit testing framework, and looks geared towards system testing 
 
 ## [pytest-wdl](https://github.com/EliLillyCo/pytest-wdl)
 
-Last update was 4 years ago, which we on the `workflows` repo considered a deal breaker when we were iniitally shopping for CI testing. It seems very similar to pytest-workflow, at least on the surface, (of course they are both plugins to the popular pytest framework) but admittedly I have not dove very deep into this project.
+Last update was 4 years ago, which we on the `workflows` repo considered a deal breaker when we were initially shopping for CI testing. It seems very similar to pytest-workflow, at least on the surface, (of course they are both plugins to the popular pytest framework) but admittedly I have not dug very deep into this project.
 
 ## [CZ ID repo](https://github.com/chanzuckerberg/czid-workflows/tree/main?tab=readme-ov-file#cicd)
 
@@ -282,7 +279,7 @@ I think there's a lot of room for growth in the builtin test conditions. This do
 
 ## Validating other engines
 
-First off, I don't think this is something we want to pursue within Sprocket, but I didn't want to leave the possibility undiscussed.
+First off, I don't think this is something we want to pursue within Sprocket, but I didn't want to omit the possibility from this document.
 
 Supporting multiple engines/runners/environments/etc. is valuable and something many WDL authors are looking for. In the `workflows` repo, we currently validate our tasks with both `sprocket run` and `miniwdl run`; ideally we'd like to expand that to include others as well, but it is tricky to get running smoothly.
 
@@ -296,7 +293,7 @@ We could explore an alternative syntax that allows test inputs to be defined sep
 
 ## Integration of custom tests
 
-The current proposal for custom tests is pretty brarebones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executable scripts, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that. 
+The current proposal for custom tests is pretty bare bones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executables, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that.
 
 ## E2E testing
 
