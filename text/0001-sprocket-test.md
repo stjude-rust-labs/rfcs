@@ -18,11 +18,9 @@ n.b.: This RFC is primarily focused on CI unit testing, but enabling larger scal
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
-The Sprocket test framework is primarily specified in TOML, which is expected to be within a `tests/` directory at the root of the WDL workspace. `sprocket test` does not require any special syntax or modification of actual WDL files, and any spec-compliant WDL workspace can create a `tests` directory respected by Sprocket.
+The Sprocket test framework is primarily specified in TOML, which is expected to be in a file of the same basename as the WDL being tested, but with the `.wdl` extension replaced by `.toml`. `sprocket test` does not require any special syntax or modification of actual WDL files, and any WDL workspace can begin writing tests without needing to refactor their WDL documents. Following this pattern frees the TOML from having to contain any information about _where_ to find the entrypoint of each test. For example, all the test entrypoints (tasks or workflows) in `data_structures/flag_filter.toml` are expected to be defined in the WDL located at `data_structures/flag_filter.wdl`.
 
-The `tests/` directory is expected to mirror the WDL workspace, where it should have the same path structure, but with `.wdl` file extensions replaced by `.toml` extensions. The TOML files contain tests for tasks and workflows defined at their respective WDL counterpart in the main workspace. e.g. a WDL file located at `data_structures/flag_filter.wdl` would have accompanying tests defined in `tests/data_structures/flag_filter.toml`. Following this structure frees the TOML from having to contain any information about _where_ to find the entrypoints of each test. All the test entrypoints (tasks or workflows) in `tests/data_structures/flag_filter.toml` are expected to be defined in the WDL located at `data_structures/flag_filter.wdl`.
-
-Any task or worklow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `tests/data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the header `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. Under each of these headers will be a TOML table with all the required information for a single test.
+Any task or workflow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the header `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. Under each of these headers will be a TOML table with all the required information for a single test.
 
 An example TOML for specifying a suite of tests for [the `flag_filter.wdl` document in the `workflows` repo](https://github.com/stjudecloud/workflows/blob/main/data_structures/flag_filter.wdl) would look like:
 
@@ -82,7 +80,7 @@ Hopefully, everything in the above TOML is easily enough grokked that I won't sp
 
 ## Test Data
 
-Most WDL tasks and workflows have `File` type inputs and outputs, so there should be an easy way to incorporate test files into the framework. This can be accomplished with a `tests/fixtures/` directory that can be referred to from any TOML test in the `tests` directory. If the string `$FIXTURES` is found within a TOML string value within the `inputs` table, the correct path to the `fixtures` directory will be dynamically inserted at test run time. This avoids having to track relative paths from TOML that may be arbitrarily nested in relation to test data. For example, let's assume there are `test.bam`, `test.bam.bai`, and `reference.fa.gz` files located within the `tests/fixtures/` directory; the following TOML `inputs` table could be used regardless of where that actual `.toml` file resides within the `tests/` directory:
+Most WDL tasks and workflows have `File` type inputs and outputs, so there should be an easy way to incorporate test files into the framework. This can be accomplished with a `tests/fixtures/` directory in the root of the workspace which can be referred to from any TOML test. If the string `$FIXTURES` is found within a TOML string value within the `inputs` table, the correct path to the `fixtures` directory will be dynamically inserted at test run time. This avoids having to track relative paths from TOML that may be arbitrarily nested in relation to test data. For example, let's assume there are `test.bam`, `test.bam.bai`, and `reference.fa.gz` files located within the `tests/fixtures/` directory; the following TOML `inputs` table could be used regardless of where that actual `.toml` file resides within the WDL workspace:
 
 ```toml
 bam = "$FIXTURES/test.bam"
@@ -92,7 +90,7 @@ reference_fasta = "$FIXTURES/reference.fa.gz"
 
 ## Builtin Test Conditions
 
-Sprocket will support a variety of common test conditions. In this document so far, we've seen a few of the most straightforward conditions already in the `tests` table of the earlier TOML example (`exit_code`, `stdout.contains`, `stderr.contains` and `should_fail`). For the initial release of `sprocket test`, these test builtins will probably remain as a rather small and tailored set, but the implementation should make extending this set in subsequent releases simple and non-breaking.
+Sprocket will support a variety of common test conditions. In this document so far, we've seen a few of the most straightforward conditions already in the `tests` table of the earlier TOML example (`exit_code`, `stdout.contains`, `stderr.contains` and `should_fail`). For the initial release of `sprocket test`, these test builtins will probably remain as a rather small and tailored set, but the implementation should make extending this set in subsequent releases simple and non-breaking. Adding new builtin test conditions could be a recommended starting point for new contributors, similar to how new lint rules are fairly straightforward to add.
 
 Some tests that might exist at initial release:
 
@@ -112,21 +110,23 @@ Some tests that might exist at initial release:
         - `equals = <string>` an exact match RE
     - `<WDL File>`
         - `name = <string>`: glob pattern that should match
-        - `hash = <string>`: md5 (or blake3?) that the file should have
-        - `contains = <string | array of strings>`: REs to expect (implies the file is ASCII and will fail if in another encoding)
+        - `md5 = <string>`: md5sum that the file should have
+        - `blake3 = <string>`: blake3 hash that the file should have
+        - `sha256 = <string>`: sha256 hash that the file should have
+        - `contains = <string | array of strings>`: REs to expect within the file contents
         - `not_contains = <string | array of strings>`: inverse of `contains`
 
 The above is probably (about) sufficient for an initial release. Thoughts about future tests that could exist will be discussed in the ["Future possibilities"](#future-possibilities) section.
 
 ## Custom tests
 
-While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a name or array of names of user-written supplied executables (most commonly shell or Python scripts) which are expected to be found in a `tests/custom/` directory. These executables will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.
+While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a name or array of names of user supplied executables (most commonly shell or Python scripts) which are expected to be found in a `tests/custom/` directory. These executables will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.
 
-For further discussion of why this design was chosen, see the [rationale section](#rationale-and-alternatives).
+For further discussion of why this design was chosen, see the [rationale section](#rationale-and-alternatives). The path to an `outputs.json` is required for this to be usable, but we could consider other paths or information which may be valuable in a test context which we could expose via other arguments or environment variables. 
 
 ### Example
 
-`tests/tools/picard.toml`
+`tools/picard.toml`
 ```toml
 [[merge_sam_files]]
 name = "Merge works"
@@ -155,7 +155,9 @@ samtools quickcheck "$out_bam"
 
 ## Test Matrices
 
-Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate test definitions. A test matrix is created by defining a `matrix` TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. An example for a `bam_to_fastq` task might look like:
+Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a "shortcut" for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate. A test matrix is created by defining a `matrix` TOML array of tables for a set of test inputs. Each permutation of the "input vectors" will be run, which can be leveraged to test many conditions with a single test definition. Sprocket will evaluate the Cartesian product of the tables in the `matrix` array and run each combination of input values.
+
+Below, you will find an example for a `bam_to_fastq` task defines `3*2*2*2*2*2*1 = 96` different permutations of the task inputs which should each be executed by Sprocket using only ~30 lines of TOML.
 
 ```toml
 [[bam_to_fastq]]
@@ -184,13 +186,13 @@ retain_collated_bam = [true, false]
 append_read_number = [true, false]
 [[bam_to_fastq.matrix]]
 output_singletons = [true, false]
-[bam_to_fastq.inputs]
-prefix = "kitchen_sink_test" # the `prefix` input will be shared by _all_ permutations of the test matrix
+[[bam_to_fastq.matrix]]
+prefix = ["kitchen_sink_test"] # the `prefix` input will be shared by _all_ permutations of the test matrix
 # this test is to ensure all the options (and combinations thereof) are valid
 # so no tests beyond a `0` exit code are needed here
 ```
 
-This is perhaps an extreme test case, but it was contrived as a stress test of sorts for the matrix design. In ~30 lines of TOML, this defines `3*2*2*2*2*2 = 96` different permutations of the `bam_to_fastq` task that should be executed by Sprocket. This specific case may be too intense to run in a CI environment, but should demonstrate the power of test matrices in aiding comprehensive testing without undue boilerplate.
+This is perhaps an extreme test case, but it was contrived as a stress test of sorts for the matrix design. This specific case may be too intense to run in a CI environment, but should demonstrate the power of test matrices in aiding comprehensive testing without undue boilerplate.
 
 (Notably, the actual `bam_to_fastq` task in `samtools.wdl` ([here](https://github.com/stjudecloud/workflows/blob/main/tools/samtools.wdl#L763)) does not have a `bam_index` input, but that was added to this example for illustrative purposes)
 
@@ -198,11 +200,11 @@ REVIEWERS: I can write more examples of "real" TOML test files, as presumably we
 
 ## Configuration
 
-All of the expected paths, `tests/`, `fixtures/`, and `custom/`, will be configurable. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default Sprocket test directory to something like `sprocket-tests/`.
+All of the expected paths, `tests/fixtures/` and `tests/custom/`, will be configurable. `tests/` conflicts with `pytest-workflow`, so users may want to rename the default directories to something like `sprocket-tests/`.
 
 ## Test Filtering
 
-Users will be able to annotate each test with arbitrary tags which will allow them to run subsets of the entire test suite. They will also be able to run the tests in a specific file, as opposed to the default `sprocket test` behavior which will be to recurse the `test` directory and run all found tests. This will facilitate a variety of applications, most notably restricting the run to only what the developer knows has changed and parallelizing CI runs.
+Users will be able to annotate each test with arbitrary tags which will allow them to run subsets of the entire test suite. They will also be able to run the tests in a specific file, as opposed to the default `sprocket test` behavior which will be to recurse the working directory and run all found tests. This will facilitate a variety of applications, most notably restricting the run to only what the developer knows has changed and parallelizing CI runs.
 
 We may also want to give some tags special meaning: it is common to annotate "slow" tests and to exclude them from runs by default and we may want to make reduce friction in configuring that case. 
 
