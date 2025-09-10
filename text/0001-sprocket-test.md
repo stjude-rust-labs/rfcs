@@ -20,7 +20,7 @@ n.b.: This RFC is primarily focused on CI unit testing, but enabling larger scal
 
 The Sprocket test framework is primarily specified in TOML, which is expected to be in a file of the same basename as the WDL being tested, but with the `.wdl` extension replaced by `.toml`. `sprocket test` does not require any special syntax or modification of actual WDL files, and any WDL workspace can begin writing tests without needing to refactor their WDL documents. Following this pattern frees the TOML from having to contain any information about _where_ to find the entrypoint of each test. For example, all the test entrypoints (tasks or workflows) in `data_structures/flag_filter.toml` are expected to be defined in the WDL located at `data_structures/flag_filter.wdl`.
 
-Any task or workflow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the header `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. Under each of these headers will be a TOML table with all the required information for a single test.
+Any task or workflow defined in `data_structures/flag_filter.wdl` can have any number of tests associated with it in `data_structures/flag_filter.toml`. To write a set of tests for a task `validate_string_is_12bit_int` in `flag_filter.wdl`, the user will define an array of tables in their TOML with the header `[[validate_string_is_12bit_int]]`. Multiple tests can be written for the `validate_string_is_12bit_int` task by repeating the `[[validate_string_is_12bit_int]]` header. The `validate_flag_filter` workflow can be tested the same way, by defining a TOML array of tables headered with `[[validate_flag_filter]]`. These TOML headers must match an entrypoint in the corresponding WDL file. Under each of these headers will be a TOML table with all the required information for a single test.
 
 An example TOML for specifying a suite of tests for [the `flag_filter.wdl` document in the `workflows` repo](https://github.com/stjudecloud/workflows/blob/main/data_structures/flag_filter.wdl) would look like:
 
@@ -29,33 +29,33 @@ An example TOML for specifying a suite of tests for [the `flag_filter.wdl` docum
 name = "decimal_passes" # each test must have a unique identifier
 [validate_string_is_12bit_int.inputs]
 number = "5"
-# without any tests explicitly configured, Sprocket will consider the task executing with a 0 exit code to be a "pass" and any non-zero exit code as a "fail"
+# without any assertions explicitly configured, Sprocket will consider the task executing with a 0 exit code to be a "pass" and any non-zero exit code as a "fail"
 
 [[validate_string_is_12bit_int]]
 name = "hexadecimal_passes"
 [validate_string_is_12bit_int.inputs]
 number = "0x900"
-[validate_string_is_12bit_int.tests]
-stdout.contains = "Input number (0x900) is valid" # builtin test for checking STDOUT logs
+[validate_string_is_12bit_int.assertions]
+stdout.contains = "Input number (0x900) is valid" # builtin assertion for checking STDOUT logs
 
 [[validate_string_is_12bit_int]]
 name = "too_big_hexadecimal_fails"
 [validate_string_is_12bit_int.inputs]
 number = "0x1000"
-[validate_string_is_12bit_int.tests]
+[validate_string_is_12bit_int.assertions]
 exit_code = 42 # the task should fail for this test
-stderr.contains = "Input number (0x1000) is invalid" # similar to the stdout test
+stderr.contains = "Input number (0x1000) is invalid" # similar to the stdout assertion
 
 [[validate_string_is_12bit_int]]
 name = "too_big_decimal_fails"
 [validate_string_is_12bit_int.inputs]
 number = "4096"
-[validate_string_is_12bit_int.tests]
+[validate_string_is_12bit_int.assertions]
 exit_code = 42
 stderr.contains = [
     "Input number (4096) interpreted as decimal",
     "But number must be less than 4096!",
-] # `contains` test can also be an array of strings
+] # `contains` assertion can also be an array of strings
 
 [[validate_flag_filter]] # a workflow test
 name = "valid_FlagFilter_passes"
@@ -72,7 +72,7 @@ include_if_all = "" # empty string
 exclude_if_any = "this is not a number"
 include_if_any = "000000000011" # binary interpreted as octal. Too many digits for octal
 exclude_if_all = "4095" # this is fine
-[validate_flag_filter.tests]
+[validate_flag_filter.assertions]
 should_fail = true
 ```
 
@@ -88,19 +88,19 @@ bam_index = "$FIXTURES/test.bam.bai"
 reference_fasta = "$FIXTURES/reference.fa.gz"
 ```
 
-## Builtin Test Conditions
+## Builtin Assertions
 
-Sprocket will support a variety of common test conditions. In this document so far, we've seen a few of the most straightforward conditions already in the `tests` table of the earlier TOML example (`exit_code`, `stdout.contains`, `stderr.contains` and `should_fail`). For the initial release of `sprocket test`, these test builtins will probably remain as a rather small and tailored set, but the implementation should make extending this set in subsequent releases simple and non-breaking. Adding new builtin test conditions could be a recommended starting point for new contributors, similar to how new lint rules are fairly straightforward to add.
+Sprocket will support a variety of common test conditions. In this document so far, we've seen a few of the most straightforward conditions already in the `assertions` table of the earlier TOML example (`exit_code`, `stdout.contains`, `stderr.contains` and `should_fail`). For the initial release of `sprocket test`, these builtin assertions will probably remain as a rather small and tailored set, but the implementation should make extending this set in subsequent releases simple and non-breaking. Adding new builtin assertions could be a recommended starting point for new contributors, similar to how new lint rules are fairly straightforward to add.
 
-Some tests that might exist at initial release:
+Some assertions that might exist at initial release:
 
 - `exit_code = <int>` (should an array of ints be supported?)
 - `should_fail = <bool>`: only available for workflow tests! Task tests should instead specify an `exit_code`
 - `stdout`: will be a TOML table with a sub-tests related to checking a tasks STDOUT log (_not available_ for workflow tests)
     - `contains = <string | array of strings>`: strings are REs
     - `not_contains = <string | array of strings>`: strings are REs
-- `stderr`: functionally equivalent to the `stdout` tests, but runs on the STDERR log instead
-- `outputs`: a TOML table populated with task or workflow output identifiers. The specific tests available will depend on the WDL type of the specified output
+- `stderr`: functionally equivalent to the `stdout` tests, assertions but runs on the STDERR log instead
+- `outputs`: a TOML table populated with task or workflow output identifiers. The specific assertions available will depend on the WDL type of the specified output
     - `<WDL Boolean> = <true|false>`
     - `<WDL Int> = <TOML int>`
     - `<WDL Float> = <TOML float>`
@@ -116,11 +116,11 @@ Some tests that might exist at initial release:
         - `contains = <string | array of strings>`: REs to expect within the file contents
         - `not_contains = <string | array of strings>`: inverse of `contains`
 
-The above is probably (about) sufficient for an initial release. Thoughts about future tests that could exist will be discussed in the ["Future possibilities"](#future-possibilities) section.
+The above is probably (about) sufficient for an initial release. Thoughts about future assertions that could exist will be discussed in the ["Future possibilities"](#future-possibilities) section.
 
-## Custom tests
+## Custom Assertions
 
-While the builtin test conditions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `tests.custom` test, which will accept a name or array of names of user supplied executables (most commonly shell or Python scripts) which are expected to be found in a `tests/custom/` directory. These executables will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.
+While the builtin assertions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the `assertions.custom` test, which will accept a name or array of names of user supplied executables (most commonly shell or Python scripts) which are expected to be found in a `tests/custom/` directory. These executables will be invoked with a positional argument which is a path to the task or workflow's `outputs.json`. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.
 
 For further discussion of why this design was chosen, see the [rationale section](#rationale-and-alternatives). The path to an `outputs.json` is required for this to be usable, but we could consider other paths or information which may be valuable in a test context which we could expose via other arguments or environment variables. 
 
@@ -136,7 +136,7 @@ bams = [
     "$FIXTURES/test2.bam",
 ]
 prefix = "test.merged"
-[merge_sam_files.tests]
+[merge_sam_files.assertions]
 custom = "quickcheck.sh"
 ```
 
@@ -189,7 +189,7 @@ output_singletons = [true, false]
 [[bam_to_fastq.matrix]]
 prefix = ["kitchen_sink_test"] # the `prefix` input will be shared by _all_ permutations of the test matrix
 # this test is to ensure all the options (and combinations thereof) are valid
-# so no tests beyond a `0` exit code are needed here
+# so no assertions beyond a `0` exit code are needed here
 ```
 
 This is perhaps an extreme test case, but it was contrived as a stress test of sorts for the matrix design. This specific case may be too intense to run in a CI environment, but should demonstrate the power of test matrices in aiding comprehensive testing without undue boilerplate.
@@ -237,9 +237,9 @@ To be serious, `pytest-workflow` seems to be the best test framework for WDL tha
 
 REVIEWERS: I've thought through quite a wide variety of implementations that have not made it into writing, and I'm not sure how valuable my musings on alternatives I _didn't like_ are. I can expand on this section if it would be informative.
 
-## Custom testing rationale
+## Custom Assertions Rationale
 
-The custom test design is meant to maximize flexibility without adding implementation complexity. The implementation proposed couldn't be much simpler: simply invoke an arbitrary executable with a single positional argument, expect an exit code of zero and anything else is a failed test.
+The custom assertion design is meant to maximize flexibility without adding implementation complexity. The implementation proposed couldn't be much simpler: simply invoke an arbitrary executable with a single positional argument, expect an exit code of zero and anything else is a failed test.
 
 This child process will inherit the parent process's environment, and it will ultimately be up to test authors for ensuring their test environment and dependencies are correct. This may lead to debugging difficulties, and Sprocket will be able to offer very little help with what's going on (aside from forwarding the STDOUT and STDERR streams).
 
@@ -293,9 +293,9 @@ An annoyance for me while working on the `workflows` CI (with pytest-workflow) i
 
 We could explore an alternative syntax that allows test inputs to be defined separately from the test. 
 
-## Integration of custom tests
+## Integration of custom assertions
 
-The current proposal for custom tests is pretty bare bones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executables, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that.
+The current proposal for custom assertions is pretty bare bones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executables, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I'm not really sure of an ergonomic way we could integrate that.
 
 ## E2E testing
 
