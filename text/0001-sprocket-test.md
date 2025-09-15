@@ -252,9 +252,17 @@ This document has been largely informed by my experience as a WDL author and mai
 
 ## `pytest-workflow`
 
-[`pytest-workflow`](https://github.com/lumc/pytest-workflow/) has been a great stop-gap tool for us. It is a generalized test framework not specific to WDL, which is ultimately what makes it unwieldly for our use cases. The WDL community should have a better solution than a generic test framework.
+[`pytest-workflow`](https://github.com/lumc/pytest-workflow/) has been a great stop-gap tool for us. It is a generalized test framework not specific to WDL, which is ultimately what makes it unwieldly for our use cases. The generality of `pytest-workflow` necessitates _a lot_ of boilerplate in our tests, and was proving a disincentive to writing comprehensive tests. Tests were a pain to write, as a lot of redundant text had to be written for hooking up inputs and outputs in a way that both `pytest-workflow` and a WDL engine could work with.
 
-That said, if you are familiar with pytest-workflow, you will likely see some similarities between it and my proposal. I've leaned on the existing designs used in pytest-workflow, and made them more specific and ergonomic for WDL.
+The WDL community should have a better solution than a generic test framework.
+
+That said, if you are familiar with pytest-workflow, you will likely see some similarities between it and my proposal. I've leaned on the existing designs used in pytest-workflow, and made them more specific and ergonomic for WDL. There are 3 primary ways this RFC distinguishes itself from pytest-workflow:
+
+1. Understanding IO for WDL, eliminating boilerplate
+2. Matrix testing to increase test depth
+3. Advanced builtin assertions
+
+The third point is more aspirational than concrete for the initial release. See [future-possibilities] for elaboration.
 
 REVIEWERS: I can elaborate further if asked
 
@@ -278,6 +286,10 @@ This is just a WDL repo, not a full test framework, but they do have a bespoke C
 ## Builtin tests
 
 I think there's a lot of room for growth in the builtin test conditions. This document just has what I think are about appropriate for an initial release (i.e. are relatively easy to implement), but that shouldn't be the end of the builtin tests. I can imagine us writing bioinformatics specific tests using the `noodles` library for testing things like "is this output file a valid BAM?", "is this BAM coordinate sorted?", "is the output BAI file correctly matched to the output BAM?", and many many more such tests.
+
+## Adoption by the WDL specification?
+
+TOML based test definitions could be lifted over to WDL `meta` sections if this approach to testing proves valuable. This RFC is concerned with an _external_ testing framework, but this possibility could be explored further down the road.
 
 ## Validating other engines
 
