@@ -62,7 +62,7 @@ task for the purpose of call caching:
 
 For this implementation of call caching, the cache key will be a 32 byte
 [Blake3][blake3] digest as a lowercase hexadecimal string, (e.g.
-`295192ea1ec8566d563bx1a7587e5f0198580cdbd043842f5090a4c197c20c67a`).
+`295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a`).
 
 ## Cache Key Calculation
 
