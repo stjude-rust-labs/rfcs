@@ -522,7 +522,7 @@ succeeded and subsequently prevent caching results for those tasks.</p>
 slow</em> failure mode (the new default), with users able to configure Sprocket to
 use the previous <em>fail fast</em> behavior when desired.</p>
 <p>With a <em>fail slow</em> failure mode, currently executing tasks are awaited to
-completion and their successful results are cached before attempting to abort
+completion, and their successful results are cached before attempting to abort
 the run.</p>
 <p>This also changes how Sprocket handles <code>Ctrl-C</code>. Sprocket should now support
 multiple <code>Ctrl-C</code> invocations depending on its configured failure mode:</p>
