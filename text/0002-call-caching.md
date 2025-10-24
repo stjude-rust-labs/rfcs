@@ -404,7 +404,7 @@ slow_ failure mode (the new default), with users able to configure Sprocket to
 use the previous _fail fast_ behavior when desired.
 
 With a _fail slow_ failure mode, currently executing tasks are awaited to
-completion and their successful results are cached before attempting to abort
+completion, and their successful results are cached before attempting to abort
 the run.
 
 This also changes how Sprocket handles `Ctrl-C`. Sprocket should now support
