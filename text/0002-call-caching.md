@@ -29,11 +29,13 @@ what the _cache key_ of a task is.
 A task's cache key is derived from a set of properties that, if altered, may
 affect the task's execution and thus the outputs produced by the task.
 
-This feature assumes that a task's execution is ***idempotent***, meaning that
-executing the exact same command in the exact same _environment_ will produce
-the exact same output. As this assumption does not hold true for every task,
-individual tasks may need to [opt-out of call caching](#opting-out)
-via a `hint` to Sprocket.
+This feature assumes that, for a given command and execution environment, a
+task's execution will produce ***functionally equivalent*** outputs. This means
+that while the outputs are not required to be byte-for-byte equivalent, they
+are required to not alter the evaluation of any downstream tasks that are
+dependent on those outputs. As this assumption does not hold true for every
+task, individual tasks may need to [opt-out of call caching](#opting-out) via a
+`volatile` hint to Sprocket.
 
 In WDL, the following properties are used for deriving a task's cache key:
 
@@ -60,6 +62,11 @@ task for the purpose of call caching:
 * The WDL document source itself, with the exception of any changes that might
   alter the above cache key properties after evaluation.
 
+Note that the `container` used by the task may have a mutable tag on it (e.g.
+`latest`) and therefore may change underneath call caching. As Sprocket will
+not be resolving the referenced tag, a change to the tag or the image
+repository used will not bust the cache.
+
 For this implementation of call caching, the cache key will be a 32 byte
 [Blake3][blake3] digest as a lowercase hexadecimal string, (e.g.
 `295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a`).
@@ -80,11 +87,16 @@ updated with the following:
    pairs from the `hints` section, ordered lexicographically by key.
 4. The calculated `container` [string](#hashing-rust-strings).
 5. The calculated `shell` [string](#hashing-rust-strings).
-6. The [sequence](#hashing-sequences) of ([basename](#hashing-rust-strings), [content digest](#calculating-content-digests))
-   pairs of the backend inputs, ordered lexicographically by basename.
+6. The [sequence](#hashing-sequences) of ([location](#hashing-rust-strings), [content digest](#calculating-content-digests))
+   pairs of the backend inputs, ordered lexicographically by input location
+   (i.e. absolute path or URL).
 
 The hasher will then be finalized to produce a Blake3 digest representing the
 cache key of the task.
+
+_Note: a failure to calculate a cache key will result in an automatic cache
+miss and no cache entry created upon a successful task execution; the error
+that caused the failure to calculate the cache key will be logged._
 
 ### Hashing Rust Strings
 
@@ -164,7 +176,7 @@ An `Array` value will update the hasher with:
 
 1. A byte with a value of `7` to indicate an `Array` variant.
 2. The [sequence](#hashing-sequences) of [elements](#hashing-wdl-values)
-   contained in the array.
+   contained in the array, in insertion order.
 
 #### Hashing a `Map` value
 
@@ -172,7 +184,7 @@ A `Map` value will update the hasher with:
 
 1. A byte with a value of `8` to indicate a `Map` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-wdl-values), [value](#hashing-wdl-values))
-   pairs, ordered by key.
+   pairs, in insertion order.
 
 #### Hashing an `Object` value
 
@@ -212,6 +224,12 @@ A `HEAD` request will be made for the remote file URL.
 
 If a successful response contains a `x-digest-blake3` header, the header's
 value will be used as the digest of the file's content.
+
+If the request is unsuccessful and the error is considered to be a "transient"
+failure (e.g. a 500 response), the `HEAD` request is retried internally up to
+some configurable limit. If the request is unsuccessful after exhausting the
+retries, the cache key will fail to calculate and result will be an automatic
+cache miss.
 
 If the response is missing the header, the empty Blake3 digest will be used for
 the file's content; Sprocket will not attempt to download the file to calculate
@@ -288,6 +306,10 @@ call_cache = "<path_to_cache>"
 The default call cache location will be the user's cache directory joined with
 `./sprocket/calls`.
 
+The call cache will have no eviction policy, meaning it will grow unbounded. A
+future `sprocket cleanup` command might give statistics of current cache sizes
+with the option to clean them, if desired.
+
 The call cache directory will contain an empty `.lock` file that will be used
 to acquire shared and exclusive file locks on the call cache; the lock file
 serves to coordinate access between concurrent `sprocket` processes.
@@ -299,6 +321,7 @@ The file will contain a JSON object with the following information:
 
 ```json
 {
+  "version": 1,                     // A monotonic version for the file format.
   "exit": <num>,                    // The last exit code of the task.
   "stdout": {
     "location": "<path-or-url>",    // The location of the last stdout output.
@@ -316,6 +339,10 @@ The file will contain a JSON object with the following information:
 ```
 
 ## Call Cache Hit
+
+If cache key calculation fails for any reason (e.g. a network error), the error
+will be logged and the result will be an automatic cache miss. Task evaluation
+will not fail due to an inability to calculate a cache key.
 
 Checking for a cache hit acquires a shared lock on the call cache directory.
 
@@ -351,6 +378,10 @@ occurs:
 If a task fails to execute after exhausting retries, the cache will not be
 updated and the error returned as the result of task evaluation.
 
+In the unlikely event that a scattered task's evaluation all use the same cache
+key, the last successful execution result will be the one to be stored in the
+cache.
+
 ***Note: a non-zero exit code of a task's execution is not inherently a failure
 as the WDL task may specify permissible non-zero exit codes.***
 
@@ -362,22 +393,24 @@ invocation.
 
 ## Task Opt Out
 
-An individual task may opt out of call caching through the use of the `cache`
+An individual task may opt out of call caching through the use of the `volatile`
 hint:
 
 ```wdl
 hints {
-  "cache": false  # Defaults to `true`
+  "volatile": true  # Defaults to `false`
 }
 ```
 
-When `cache` is false, the call cache is not checked prior to task execution.
+When `volatile` is true, the call cache is not checked prior to task execution
+and the result of the task's execution is not cached.
 
 ## Run Opt Out
 
 A single invocation of `sprocket run` may pass the `--no-call-cache` option.
 
-Doing so disables the use of the call cache for that specific run.
+Doing so disables the use of the call cache for that specific run, both in
+terms of looking up results and storing results in the cache.
 
 ## Disabling Call Caching
 
