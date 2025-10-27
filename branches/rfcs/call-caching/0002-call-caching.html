@@ -198,11 +198,13 @@ reduce redundant execution.</p>
 what the <em>cache key</em> of a task is.</p>
 <p>A task's cache key is derived from a set of properties that, if altered, may
 affect the task's execution and thus the outputs produced by the task.</p>
-<p>This feature assumes that a task's execution is <em><strong>idempotent</strong></em>, meaning that
-executing the exact same command in the exact same <em>environment</em> will produce
-the exact same output. As this assumption does not hold true for every task,
-individual tasks may need to <a href="#opting-out">opt-out of call caching</a>
-via a <code>hint</code> to Sprocket.</p>
+<p>This feature assumes that, for a given command and execution environment, a
+task's execution will produce <em><strong>functionally equivalent</strong></em> outputs. This means
+that while the outputs are not required to be byte-for-byte equivalent, they
+are required to not alter the evaluation of any downstream tasks that are
+dependent on those outputs. As this assumption does not hold true for every
+task, individual tasks may need to <a href="#opting-out">opt-out of call caching</a> via a
+<code>volatile</code> hint to Sprocket.</p>
 <p>In WDL, the following properties are used for deriving a task's cache key:</p>
 <ul>
 <li>The evaluated <code>command</code> section text.</li>
@@ -234,6 +236,10 @@ as <em>content</em> to the execution environment.</li>
 <li>The WDL document source itself, with the exception of any changes that might
 alter the above cache key properties after evaluation.</li>
 </ul>
+<p>Note that the <code>container</code> used by the task may have a mutable tag on it (e.g.
+<code>latest</code>) and therefore may change underneath call caching. As Sprocket will
+not be resolving the referenced tag, a change to the tag or the image
+repository used will not bust the cache.</p>
 <p>For this implementation of call caching, the cache key will be a 32 byte
 <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> digest as a lowercase hexadecimal string, (e.g.
 <code>295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a</code>).</p>
@@ -251,11 +257,15 @@ pairs from the <code>requirements</code> section, ordered lexicographically by k
 pairs from the <code>hints</code> section, ordered lexicographically by key.</li>
 <li>The calculated <code>container</code> <a href="#hashing-rust-strings">string</a>.</li>
 <li>The calculated <code>shell</code> <a href="#hashing-rust-strings">string</a>.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-rust-strings">basename</a>, <a href="#calculating-content-digests">content digest</a>)
-pairs of the backend inputs, ordered lexicographically by basename.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-rust-strings">location</a>, <a href="#calculating-content-digests">content digest</a>)
+pairs of the backend inputs, ordered lexicographically by input location
+(i.e. absolute path or URL).</li>
 </ol>
 <p>The hasher will then be finalized to produce a Blake3 digest representing the
 cache key of the task.</p>
+<p><em>Note: a failure to calculate a cache key will result in an automatic cache
+miss and no cache entry created upon a successful task execution; the error
+that caused the failure to calculate the cache key will be logged.</em></p>
 <h3 id="hashing-rust-strings"><a class="header" href="#hashing-rust-strings">Hashing Rust Strings</a></h3>
 <p>Hashing a Rust string will update the hasher with:</p>
 <ol>
@@ -321,14 +331,14 @@ hasher will be updated as described in this section.</p>
 <ol>
 <li>A byte with a value of <code>7</code> to indicate an <code>Array</code> variant.</li>
 <li>The <a href="#hashing-sequences">sequence</a> of <a href="#hashing-wdl-values">elements</a>
-contained in the array.</li>
+contained in the array, in insertion order.</li>
 </ol>
 <h4 id="hashing-a-map-value"><a class="header" href="#hashing-a-map-value">Hashing a <code>Map</code> value</a></h4>
 <p>A <code>Map</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>8</code> to indicate a <code>Map</code> variant.</li>
 <li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-wdl-values">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, ordered by key.</li>
+pairs, in insertion order.</li>
 </ol>
 <h4 id="hashing-an-object-value"><a class="header" href="#hashing-an-object-value">Hashing an <code>Object</code> value</a></h4>
 <p>An <code>Object</code> value will update the hasher with:</p>
@@ -359,6 +369,11 @@ large files to calculate the digest will also be utilized.</p>
 <p>A <code>HEAD</code> request will be made for the remote file URL.</p>
 <p>If a successful response contains a <code>x-digest-blake3</code> header, the header's
 value will be used as the digest of the file's content.</p>
+<p>If the request is unsuccessful and the error is considered to be a "transient"
+failure (e.g. a 500 response), the <code>HEAD</code> request is retried internally up to
+some configurable limit. If the request is unsuccessful after exhausting the
+retries, the cache key will fail to calculate and result will be an automatic
+cache miss.</p>
 <p>If the response is missing the header, the empty Blake3 digest will be used for
 the file's content; Sprocket will not attempt to download the file to calculate
 its content digest.</p>
@@ -417,6 +432,9 @@ call_cache = "&lt;path_to_cache&gt;"
 </code></pre>
 <p>The default call cache location will be the user's cache directory joined with
 <code>./sprocket/calls</code>.</p>
+<p>The call cache will have no eviction policy, meaning it will grow unbounded. A
+future <code>sprocket cleanup</code> command might give statistics of current cache sizes
+with the option to clean them, if desired.</p>
 <p>The call cache directory will contain an empty <code>.lock</code> file that will be used
 to acquire shared and exclusive file locks on the call cache; the lock file
 serves to coordinate access between concurrent <code>sprocket</code> processes.</p>
@@ -424,6 +442,7 @@ serves to coordinate access between concurrent <code>sprocket</code> processes.<
 task's cache key.</p>
 <p>The file will contain a JSON object with the following information:</p>
 <pre><code class="language-json">{
+  "version": 1,                     // A monotonic version for the file format.
   "exit": &lt;num&gt;,                    // The last exit code of the task.
   "stdout": {
     "location": "&lt;path-or-url&gt;",    // The location of the last stdout output.
@@ -440,6 +459,9 @@ task's cache key.</p>
 }
 </code></pre>
 <h2 id="call-cache-hit"><a class="header" href="#call-cache-hit">Call Cache Hit</a></h2>
+<p>If cache key calculation fails for any reason (e.g. a network error), the error
+will be logged and the result will be an automatic cache miss. Task evaluation
+will not fail due to an inability to calculate a cache key.</p>
 <p>Checking for a cache hit acquires a shared lock on the call cache directory.</p>
 <p>A call cache hit will occur if all of the following criteria are met:</p>
 <ul>
@@ -468,6 +490,9 @@ task.</li>
 </ul>
 <p>If a task fails to execute after exhausting retries, the cache will not be
 updated and the error returned as the result of task evaluation.</p>
+<p>In the unlikely event that a scattered task's evaluation all use the same cache
+key, the last successful execution result will be the one to be stored in the
+cache.</p>
 <p><em><strong>Note: a non-zero exit code of a task's execution is not inherently a failure
 as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
 <h1 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h1>
@@ -475,16 +500,18 @@ as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
 <code>sprocket run</code> invocation, or to disable call caching for every <code>sprocket run</code>
 invocation.</p>
 <h2 id="task-opt-out"><a class="header" href="#task-opt-out">Task Opt Out</a></h2>
-<p>An individual task may opt out of call caching through the use of the <code>cache</code>
+<p>An individual task may opt out of call caching through the use of the <code>volatile</code>
 hint:</p>
 <pre><code class="language-wdl">hints {
-  "cache": false  # Defaults to `true`
+  "volatile": true  # Defaults to `false`
 }
 </code></pre>
-<p>When <code>cache</code> is false, the call cache is not checked prior to task execution.</p>
+<p>When <code>volatile</code> is true, the call cache is not checked prior to task execution
+and the result of the task's execution is not cached.</p>
 <h2 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h2>
 <p>A single invocation of <code>sprocket run</code> may pass the <code>--no-call-cache</code> option.</p>
-<p>Doing so disables the use of the call cache for that specific run.</p>
+<p>Doing so disables the use of the call cache for that specific run, both in
+terms of looking up results and storing results in the cache.</p>
 <h2 id="disabling-call-caching"><a class="header" href="#disabling-call-caching">Disabling Call Caching</a></h2>
 <p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
 disabled for every invocation of <code>sprocket run</code>:</p>
