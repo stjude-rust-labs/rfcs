@@ -52,7 +52,7 @@ In WDL, the following properties are used for deriving a task's cache key:
 * The _content_ of input files and directories provided to the task's execution
   environment (i.e. execution backend inputs).
 
-Note that the following explicitly ***do not*** contribute to the identify of a
+Note that the following explicitly ***do not*** contribute to the identity of a
 task for the purpose of call caching:
 
 * The WDL identifier of the task (i.e. its "name")
