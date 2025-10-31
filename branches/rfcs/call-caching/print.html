@@ -224,7 +224,7 @@ that while the outputs are not required to be byte-for-byte equivalent, they
 are required to not alter the evaluation of any downstream tasks that are
 dependent on those outputs. As this assumption does not hold true for every
 task, individual tasks may need to <a href="0002-call-caching.html#opting-out">opt-out of call caching</a> via a
-<code>volatile</code> hint to Sprocket.</p>
+<code>cacheable</code> hint to Sprocket.</p>
 <p>In WDL, the following properties are used for deriving a task's cache key:</p>
 <ul>
 <li>The evaluated <code>command</code> section text.</li>
@@ -267,17 +267,20 @@ repository used will not bust the cache.</p>
 <p>The calculation of a task's cache key should occur just prior to where Sprocket
 sends the task to the execution backend; after the key is calculated, the call
 cache should be checked and the cached outputs reused if there was a <a href="0002-call-caching.html#call-cache-hit">cache hit</a>.</p>
+<p>A cache key is only calculated <em>once</em> upon the first evaluation of the task. If
+there is a cache miss and the task's execution fails, Sprocket will not cache
+the result of a retried execution even if it is successful.</p>
 <p>To calculate the cache key, a new <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> hasher will be created and
 updated with the following:</p>
 <ol>
-<li>The evaluated command text <a href="0002-call-caching.html#hashing-rust-strings">string</a>.</li>
-<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-rust-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+<li>The evaluated command text <a href="0002-call-caching.html#hashing-internal-strings">internal string</a>.</li>
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs from the <code>requirements</code> section, ordered lexicographically by key.</li>
-<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-rust-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs from the <code>hints</code> section, ordered lexicographically by key.</li>
-<li>The calculated <code>container</code> <a href="0002-call-caching.html#hashing-rust-strings">string</a>.</li>
-<li>The calculated <code>shell</code> <a href="0002-call-caching.html#hashing-rust-strings">string</a>.</li>
-<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-rust-strings">location</a>, <a href="0002-call-caching.html#calculating-content-digests">content digest</a>)
+<li>The calculated <code>container</code> <a href="0002-call-caching.html#hashing-internal-strings">internal string</a>.</li>
+<li>The calculated <code>shell</code> <a href="0002-call-caching.html#hashing-internal-strings">internal string</a>.</li>
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">location</a>, <a href="0002-call-caching.html#calculating-content-digests">content digest</a>)
 pairs of the backend inputs, ordered lexicographically by input location
 (i.e. absolute path or URL).</li>
 </ol>
@@ -286,8 +289,9 @@ cache key of the task.</p>
 <p><em>Note: a failure to calculate a cache key will result in an automatic cache
 miss and no cache entry created upon a successful task execution; the error
 that caused the failure to calculate the cache key will be logged.</em></p>
-<h3 id="hashing-rust-strings"><a class="header" href="#hashing-rust-strings">Hashing Rust Strings</a></h3>
-<p>Hashing a Rust string will update the hasher with:</p>
+<h3 id="hashing-internal-strings"><a class="header" href="#hashing-internal-strings">Hashing Internal Strings</a></h3>
+<p>Hashing an internal string (i.e. a string used internally by the engine) will
+update the hasher with:</p>
 <ol>
 <li>A four byte length value in little endian order.</li>
 <li>The UTF-8 bytes representing the string.</li>
@@ -325,20 +329,27 @@ hasher will be updated as described in this section.</p>
 <p>A <code>String</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>3</code> to indicate a <code>String</code> variant.</li>
-<li>The <a href="0002-call-caching.html#hashing-rust-strings">string</a> value of the <code>String</code>.</li>
+<li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>String</code>.</li>
 </ol>
 <h4 id="hashing-a-file-value"><a class="header" href="#hashing-a-file-value">Hashing a <code>File</code> value</a></h4>
 <p>A <code>File</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>4</code> to indicate a <code>File</code> variant.</li>
-<li>The <a href="0002-call-caching.html#hashing-rust-strings">string</a> value of the <code>File</code>.</li>
+<li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>File</code>.</li>
 </ol>
+<p>For the purpose of hashing a <code>File</code> value, the contents of the file specified
+by the value are <em>not</em> considered.</p>
+<p>If the <code>File</code> is a backend input, the contents will be taken into consideration
+when backend input content digests are produced.</p>
 <h4 id="hashing-a-directory-value"><a class="header" href="#hashing-a-directory-value">Hashing a <code>Directory</code> value</a></h4>
 <p>A <code>Directory</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>5</code> to indicate a <code>Directory</code> variant.</li>
-<li>The <a href="0002-call-caching.html#hashing-rust-strings">string</a> value of the <code>Directory</code>.</li>
+<li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>Directory</code>.</li>
 </ol>
+<p>For the purpose of hashing a <code>Directory</code> value, the contents of the directory
+specified by the value are <em>not</em> considered.</p>
+<p>If the <code>Directory</code> is a backend input, the contents will be taken into consideration when backend input content digests are produced.</p>
 <h4 id="hashing-a-pair-value"><a class="header" href="#hashing-a-pair-value">Hashing a <code>Pair</code> value</a></h4>
 <p>A <code>Pair</code> value will update the hasher with:</p>
 <ol>
@@ -364,14 +375,14 @@ pairs, in insertion order.</li>
 <p>An <code>Object</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>9</code> to indicate an <code>Object</code> variant.</li>
-<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-rust-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs, ordered lexicographically by key.</li>
 </ol>
 <h4 id="hashing-a-struct-value"><a class="header" href="#hashing-a-struct-value">Hashing a <code>Struct</code> value</a></h4>
 <p>A <code>Struct</code> value will update the hasher with:</p>
 <ol>
 <li>A byte with a value of <code>10</code> to indicate a <code>Struct</code> variant.</li>
-<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-rust-strings">field name</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">field name</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs, ordered lexicographically by field name.</li>
 </ol>
 <h3 id="calculating-content-digests"><a class="header" href="#calculating-content-digests">Calculating Content Digests</a></h3>
@@ -387,37 +398,31 @@ byte of the file's contents to a <a href="https://github.com/BLAKE3-team/BLAKE3"
 large files to calculate the digest will also be utilized.</p>
 <h4 id="remote-file-digests"><a class="header" href="#remote-file-digests">Remote File Digests</a></h4>
 <p>A <code>HEAD</code> request will be made for the remote file URL.</p>
-<p>If a successful response contains a <code>x-digest-blake3</code> header, the header's
-value will be used as the digest of the file's content.</p>
-<p>If the request is unsuccessful and the error is considered to be a "transient"
-failure (e.g. a 500 response), the <code>HEAD</code> request is retried internally up to
-some configurable limit. If the request is unsuccessful after exhausting the
-retries, the cache key will fail to calculate and result will be an automatic
-cache miss.</p>
-<p>If the response is missing the header, the empty Blake3 digest will be used for
-the file's content; Sprocket will not attempt to download the file to calculate
-its content digest.</p>
-<p>As part of this implementation, <code>cloud-copy</code> will be enhanced to automatically
-attach the <code>x-digest-blake3</code> header as metadata to the cloud storage objects it
-creates.</p>
-<p>That means that content digests will only be respected for:</p>
-<ul>
-<li>Files uploaded by Sprocket to cloud storage.</li>
-<li>Files uploaded by Planetary to cloud storage.</li>
-<li>Files manually uploaded by the <code>cloud-copy</code> tool to cloud storage.</li>
-</ul>
-<p>Note that Sprocket will <em>not</em> verify that the <code>x-digest-blake3</code> header matches
-the actual content digest of the file in cloud storage. However, as a <code>PUT</code> of
-an object overwrites existing metadata, the header should only be inaccurate if
-a user explicitly attaches an incorrect header to an object that was manually
-uploaded.</p>
+<p>If the remote URL is for a supported cloud storage service, the response is
+checked for the appropriate metadata header (e.g. <code>x-ms-meta-content-digest</code>,
+<code>x-amz-meta-content-digest</code>, or <code>x-goog-meta-content-digest</code>) and the header is
+treated like a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>content-digest</code></a> header.</p>
+<p>Otherwise, the response must have either a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>content-digest</code></a>
+header or a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/ETag">strong <code>ETag</code></a> header. If the response does not have the
+required header or if the header's value is invalid, it is treated as a failure
+to calculate the cache key.</p>
+<p>As the <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>content-digest</code></a> header does not currently have a
+registered digest algorithm for Blake3, the header's value is hashed as an
+<a href="0002-call-caching.html#hashing-internal-strings">internal string</a> to produce the Blake3 digest.</p>
+<p>If the <code>HEAD</code> request is unsuccessful and the error is considered to be a
+"transient" failure (e.g. a 500 response), the <code>HEAD</code> request is retried
+internally up to some configurable limit. If the request is unsuccessful after
+exhausting the retries, it is treated as a failure to calculate the cache key.</p>
+<p>Note that Sprocket will <em>not</em> verify that the <code>content-digest</code> header matches
+the actual content digest of the file as that requires downloading its entire
+contents.</p>
 <h4 id="local-directory-digests"><a class="header" href="#local-directory-digests">Local Directory Digests</a></h4>
 <p>The content digest of a local directory is calculated by walking the directory
 in a consistent order and updating a Blake3 hasher based on each entry of the
 directory.</p>
 <p>A directory's entry is hashed with:</p>
 <ol>
-<li>The <a href="0002-call-caching.html#hashing-rust-strings">basename</a> of the directory entry.</li>
+<li>The <a href="0002-call-caching.html#hashing-internal-strings">basename</a> of the directory entry.</li>
 <li>The 32 byte Blake3 digest of the entry; if the entry is itself a directory, a
 recursion takes place based on the path to the sub-directory.</li>
 </ol>
@@ -435,10 +440,9 @@ walk the directory in a consistent order and then updating a Blake3 hasher
 based on each entry of the directory.</p>
 <p>A directory's entry is hashed with:</p>
 <ol>
-<li>The <a href="0002-call-caching.html#hashing-rust-strings">relative path</a> of the entry from the base URL.</li>
-<li>The 32 byte Blake3 digest of the entry, which is returned via the proposed
-<code>x-digest-blake3</code> header from a <code>HEAD</code> request for the file or the empty
-digest if the response header is missing.</li>
+<li>The <a href="0002-call-caching.html#hashing-internal-strings">relative path</a> of the entry from the base
+URL.</li>
+<li>The 32 byte Blake3 digest of the <a href="0002-call-caching.html#remote-file-digests">remote file entry</a>.</li>
 </ol>
 <p>Finally, a four byte (little endian) entry count value is written to the hasher
 before it is finalized to produce the 32 byte Blake3 content digest of the
@@ -515,29 +519,31 @@ key, the last successful execution result will be the one to be stored in the
 cache.</p>
 <p><em><strong>Note: a non-zero exit code of a task's execution is not inherently a failure
 as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
-<h1 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h1>
-<p>Users may desire to opt-out of call caching for individual tasks, a single
-<code>sprocket run</code> invocation, or to disable call caching for every <code>sprocket run</code>
-invocation.</p>
-<h2 id="task-opt-out"><a class="header" href="#task-opt-out">Task Opt Out</a></h2>
-<p>An individual task may opt out of call caching through the use of the <code>volatile</code>
-hint:</p>
+<h1 id="enabling-call-caching"><a class="header" href="#enabling-call-caching">Enabling Call Caching</a></h1>
+<p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
+enabled for every invocation of <code>sprocket run</code>:</p>
+<pre><code class="language-toml">[run.task]
+use_call_cache = true   # Defaults to `false`
+</code></pre>
+<p>By default, Sprocket will not enable call caching as it safer to let users
+consciously opt-in than potentially serve stale results from the cache
+without the user's knowledge that call caching is occurring.</p>
+<h2 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h2>
+<p>When call caching has been enabled, users may desire to opt-out of call caching
+for individual tasks or a single <code>sprocket run</code> invocation.</p>
+<h3 id="task-opt-out"><a class="header" href="#task-opt-out">Task Opt Out</a></h3>
+<p>An individual task may opt out of call caching through the use of the
+<code>cacheable</code> hint:</p>
 <pre><code class="language-wdl">hints {
-  "volatile": true  # Defaults to `false`
+  "cacheable": false  # Defaults to `true`
 }
 </code></pre>
-<p>When <code>volatile</code> is true, the call cache is not checked prior to task execution
-and the result of the task's execution is not cached.</p>
-<h2 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h2>
+<p>When <code>cacheable</code> is <code>false</code>, the call cache is not checked prior to task
+execution and the result of the task's execution is not cached.</p>
+<h3 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h3>
 <p>A single invocation of <code>sprocket run</code> may pass the <code>--no-call-cache</code> option.</p>
 <p>Doing so disables the use of the call cache for that specific run, both in
 terms of looking up results and storing results in the cache.</p>
-<h2 id="disabling-call-caching"><a class="header" href="#disabling-call-caching">Disabling Call Caching</a></h2>
-<p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
-disabled for every invocation of <code>sprocket run</code>:</p>
-<pre><code class="language-toml">[run.task]
-use_call_cache = false   # Defaults to `true`
-</code></pre>
 <h1 id="failure-modes-for-sprocket"><a class="header" href="#failure-modes-for-sprocket">Failure Modes for Sprocket</a></h1>
 <p>Sprocket currently uses a <em>fail fast</em> failure mode where Sprocket immediately
 attempts to cancel any currently executing tasks and return the error it
