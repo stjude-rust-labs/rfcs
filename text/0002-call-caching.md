@@ -428,9 +428,12 @@ An individual task may opt out of call caching through the use of the
 
 ```wdl
 hints {
-  "cacheable": false  # Defaults to `true`
+  "cacheable": false
 }
 ```
+
+The `cacheable` hint defaults to `false` if the `task.cache` setting is
+`explicit`; otherwise, the hint defaults to `true`.
 
 When `cacheable` is `false`, the call cache is not checked prior to task
 execution and the result of the task's execution is not cached.
