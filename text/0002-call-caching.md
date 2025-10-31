@@ -309,7 +309,7 @@ The call cache directory may be configured via `sprocket.toml`:
 
 ```toml
 [run.task]
-call_cache = "<path_to_cache>"
+cache_dir = "<path_to_cache>"
 ```
 
 The default call cache location will be the user's cache directory joined with
@@ -401,12 +401,20 @@ enabled for every invocation of `sprocket run`:
 
 ```toml
 [run.task]
-use_call_cache = true   # Defaults to `false`
+cache = "off|on|explicit" # defaults to `off`
 ```
 
-By default, Sprocket will not enable call caching as it safer to let users
-consciously opt-in than potentially serve stale results from the cache
-without the user's knowledge that call caching is occurring.
+The supported values for the `cache` setting are:
+
+* `off` - do not check the call cache or write new cache entries at all.
+* `on` - check the call cache and write new cache entries for all tasks except
+  those that have a `cacheable: false` hint.
+* `explicit` - check the call cache and write new cache entries _only_ for
+  tasks that have a `cacheable: true` hint.
+
+Sprocket will default the setting to `off` as it safer to let users consciously
+opt-in than potentially serve stale results from the cache without the user's
+knowledge that call caching is occurring.
 
 ## Opting Out
 
