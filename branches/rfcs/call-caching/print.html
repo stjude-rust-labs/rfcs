@@ -543,9 +543,11 @@ for individual tasks or a single <code>sprocket run</code> invocation.</p>
 <p>An individual task may opt out of call caching through the use of the
 <code>cacheable</code> hint:</p>
 <pre><code class="language-wdl">hints {
-  "cacheable": false  # Defaults to `true`
+  "cacheable": false
 }
 </code></pre>
+<p>The <code>cacheable</code> hint defaults to <code>false</code> if the <code>task.cache</code> setting is
+<code>explicit</code>; otherwise, the hint defaults to <code>true</code>.</p>
 <p>When <code>cacheable</code> is <code>false</code>, the call cache is not checked prior to task
 execution and the result of the task's execution is not cached.</p>
 <h3 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h3>
