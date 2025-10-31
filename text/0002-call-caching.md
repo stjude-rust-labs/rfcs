@@ -35,7 +35,7 @@ that while the outputs are not required to be byte-for-byte equivalent, they
 are required to not alter the evaluation of any downstream tasks that are
 dependent on those outputs. As this assumption does not hold true for every
 task, individual tasks may need to [opt-out of call caching](#opting-out) via a
-`volatile` hint to Sprocket.
+`cacheable` hint to Sprocket.
 
 In WDL, the following properties are used for deriving a task's cache key:
 
@@ -77,17 +77,21 @@ The calculation of a task's cache key should occur just prior to where Sprocket
 sends the task to the execution backend; after the key is calculated, the call
 cache should be checked and the cached outputs reused if there was a [cache hit](#call-cache-hit).
 
+A cache key is only calculated _once_ upon the first evaluation of the task. If
+there is a cache miss and the task's execution fails, Sprocket will not cache
+the result of a retried execution even if it is successful.
+
 To calculate the cache key, a new [Blake3][blake3] hasher will be created and
 updated with the following:
 
-1. The evaluated command text [string](#hashing-rust-strings).
-2. The [sequence](#hashing-sequences) of ([key](#hashing-rust-strings), [value](#hashing-wdl-values))
+1. The evaluated command text [internal string](#hashing-internal-strings).
+2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs from the `requirements` section, ordered lexicographically by key.
-3. The [sequence](#hashing-sequences) of ([key](#hashing-rust-strings), [value](#hashing-wdl-values))
+3. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs from the `hints` section, ordered lexicographically by key.
-4. The calculated `container` [string](#hashing-rust-strings).
-5. The calculated `shell` [string](#hashing-rust-strings).
-6. The [sequence](#hashing-sequences) of ([location](#hashing-rust-strings), [content digest](#calculating-content-digests))
+4. The calculated `container` [internal string](#hashing-internal-strings).
+5. The calculated `shell` [internal string](#hashing-internal-strings).
+6. The [sequence](#hashing-sequences) of ([location](#hashing-internal-strings), [content digest](#calculating-content-digests))
    pairs of the backend inputs, ordered lexicographically by input location
    (i.e. absolute path or URL).
 
@@ -98,9 +102,10 @@ _Note: a failure to calculate a cache key will result in an automatic cache
 miss and no cache entry created upon a successful task execution; the error
 that caused the failure to calculate the cache key will be logged._
 
-### Hashing Rust Strings
+### Hashing Internal Strings
 
-Hashing a Rust string will update the hasher with:
+Hashing an internal string (i.e. a string used internally by the engine) will
+update the hasher with:
 
 1. A four byte length value in little endian order.
 2. The UTF-8 bytes representing the string.
@@ -146,21 +151,32 @@ A `Float` value will update the hasher with:
 A `String` value will update the hasher with:
 
 1. A byte with a value of `3` to indicate a `String` variant.
-2. The [string](#hashing-rust-strings) value of the `String`.
+2. The [internal string](#hashing-internal-strings) value of the `String`.
 
 #### Hashing a `File` value
 
 A `File` value will update the hasher with:
 
 1. A byte with a value of `4` to indicate a `File` variant.
-2. The [string](#hashing-rust-strings) value of the `File`.
+2. The [internal string](#hashing-internal-strings) value of the `File`.
+
+For the purpose of hashing a `File` value, the contents of the file specified
+by the value are _not_ considered.
+
+If the `File` is a backend input, the contents will be taken into consideration
+when backend input content digests are produced.
 
 #### Hashing a `Directory` value
 
 A `Directory` value will update the hasher with:
 
 1. A byte with a value of `5` to indicate a `Directory` variant.
-2. The [string](#hashing-rust-strings) value of the `Directory`.
+2. The [internal string](#hashing-internal-strings) value of the `Directory`.
+
+For the purpose of hashing a `Directory` value, the contents of the directory
+specified by the value are _not_ considered.
+
+If the `Directory` is a backend input, the contents will be taken into consideration when backend input content digests are produced.
 
 #### Hashing a `Pair` value
 
@@ -191,7 +207,7 @@ A `Map` value will update the hasher with:
 An `Object` value will update the hasher with:
 
 1. A byte with a value of `9` to indicate an `Object` variant.
-2. The [sequence](#hashing-sequences) of ([key](#hashing-rust-strings), [value](#hashing-wdl-values))
+2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, ordered lexicographically by key.
 
 #### Hashing a `Struct` value
@@ -199,7 +215,7 @@ An `Object` value will update the hasher with:
 A `Struct` value will update the hasher with:
 
 1. A byte with a value of `10` to indicate a `Struct` variant.
-2. The [sequence](#hashing-sequences) of ([field name](#hashing-rust-strings), [value](#hashing-wdl-values))
+2. The [sequence](#hashing-sequences) of ([field name](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, ordered lexicographically by field name.
 
 ### Calculating Content Digests
@@ -222,34 +238,28 @@ large files to calculate the digest will also be utilized.
 
 A `HEAD` request will be made for the remote file URL.
 
-If a successful response contains a `x-digest-blake3` header, the header's
-value will be used as the digest of the file's content.
+If the remote URL is for a supported cloud storage service, the response is
+checked for the appropriate metadata header (e.g. `x-ms-meta-content-digest`,
+`x-amz-meta-content-digest`, or `x-goog-meta-content-digest`) and the header is
+treated like a [`content-digest`][content-digest] header.
 
-If the request is unsuccessful and the error is considered to be a "transient"
-failure (e.g. a 500 response), the `HEAD` request is retried internally up to
-some configurable limit. If the request is unsuccessful after exhausting the
-retries, the cache key will fail to calculate and result will be an automatic
-cache miss.
+Otherwise, the response must have either a [`content-digest`][content-digest]
+header or a [strong `ETag`][etag] header. If the response does not have the
+required header or if the header's value is invalid, it is treated as a failure
+to calculate the cache key.
 
-If the response is missing the header, the empty Blake3 digest will be used for
-the file's content; Sprocket will not attempt to download the file to calculate
-its content digest.
+As the [`content-digest`][content-digest] header does not currently have a
+registered digest algorithm for Blake3, the header's value is hashed as an
+[internal string](#hashing-internal-strings) to produce the Blake3 digest.
 
-As part of this implementation, `cloud-copy` will be enhanced to automatically
-attach the `x-digest-blake3` header as metadata to the cloud storage objects it
-creates.
+If the `HEAD` request is unsuccessful and the error is considered to be a
+"transient" failure (e.g. a 500 response), the `HEAD` request is retried
+internally up to some configurable limit. If the request is unsuccessful after
+exhausting the retries, it is treated as a failure to calculate the cache key.
 
-That means that content digests will only be respected for:
-
-* Files uploaded by Sprocket to cloud storage.
-* Files uploaded by Planetary to cloud storage.
-* Files manually uploaded by the `cloud-copy` tool to cloud storage.
-
-Note that Sprocket will *not* verify that the `x-digest-blake3` header matches
-the actual content digest of the file in cloud storage. However, as a `PUT` of
-an object overwrites existing metadata, the header should only be inaccurate if
-a user explicitly attaches an incorrect header to an object that was manually
-uploaded.
+Note that Sprocket will *not* verify that the `content-digest` header matches
+the actual content digest of the file as that requires downloading its entire
+contents.
 
 #### Local Directory Digests
 
@@ -259,7 +269,7 @@ directory.
 
 A directory's entry is hashed with:
 
-1. The [basename](#hashing-rust-strings) of the directory entry.
+1. The [basename](#hashing-internal-strings) of the directory entry.
 2. The 32 byte Blake3 digest of the entry; if the entry is itself a directory, a
    recursion takes place based on the path to the sub-directory.
 
@@ -282,10 +292,9 @@ based on each entry of the directory.
 
 A directory's entry is hashed with:
 
-1. The [relative path](#hashing-rust-strings) of the entry from the base URL.
-2. The 32 byte Blake3 digest of the entry, which is returned via the proposed
-   `x-digest-blake3` header from a `HEAD` request for the file or the empty
-   digest if the response header is missing.
+1. The [relative path](#hashing-internal-strings) of the entry from the base
+   URL.
+2. The 32 byte Blake3 digest of the [remote file entry](#remote-file-digests).
 
 Finally, a four byte (little endian) entry count value is written to the hasher
 before it is finalized to produce the 32 byte Blake3 content digest of the
@@ -385,42 +394,45 @@ cache.
 ***Note: a non-zero exit code of a task's execution is not inherently a failure
 as the WDL task may specify permissible non-zero exit codes.***
 
-# Opting Out
+# Enabling Call Caching
 
-Users may desire to opt-out of call caching for individual tasks, a single
-`sprocket run` invocation, or to disable call caching for every `sprocket run`
-invocation.
+A setting in `sprocket.toml` can control whether or not call caching is
+enabled for every invocation of `sprocket run`:
 
-## Task Opt Out
+```toml
+[run.task]
+use_call_cache = true   # Defaults to `false`
+```
 
-An individual task may opt out of call caching through the use of the `volatile`
-hint:
+By default, Sprocket will not enable call caching as it safer to let users
+consciously opt-in than potentially serve stale results from the cache
+without the user's knowledge that call caching is occurring.
+
+## Opting Out
+
+When call caching has been enabled, users may desire to opt-out of call caching
+for individual tasks or a single `sprocket run` invocation.
+
+### Task Opt Out
+
+An individual task may opt out of call caching through the use of the
+`cacheable` hint:
 
 ```wdl
 hints {
-  "volatile": true  # Defaults to `false`
+  "cacheable": false  # Defaults to `true`
 }
 ```
 
-When `volatile` is true, the call cache is not checked prior to task execution
-and the result of the task's execution is not cached.
+When `cacheable` is `false`, the call cache is not checked prior to task
+execution and the result of the task's execution is not cached.
 
-## Run Opt Out
+### Run Opt Out
 
 A single invocation of `sprocket run` may pass the `--no-call-cache` option.
 
 Doing so disables the use of the call cache for that specific run, both in
 terms of looking up results and storing results in the cache.
-
-## Disabling Call Caching
-
-A setting in `sprocket.toml` can control whether or not call caching is
-disabled for every invocation of `sprocket run`:
-
-```toml
-[run.task]
-use_call_cache = false   # Defaults to `true`
-```
 
 # Failure Modes for Sprocket
 
@@ -466,3 +478,5 @@ fail = "slow|fast"   # Defaults to `slow`
 [blake3]: https://github.com/BLAKE3-team/BLAKE3
 [hardlink]: https://en.wikipedia.org/wiki/Hard_link
 [symboliclink]: https://en.wikipedia.org/wiki/Symbolic_link
+[content-digest]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest
+[etag]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/ETag
