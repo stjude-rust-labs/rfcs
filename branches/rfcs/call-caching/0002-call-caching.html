@@ -432,7 +432,7 @@ directory.</p>
 call cache directory.</p>
 <p>The call cache directory may be configured via <code>sprocket.toml</code>:</p>
 <pre><code class="language-toml">[run.task]
-call_cache = "&lt;path_to_cache&gt;"
+cache_dir = "&lt;path_to_cache&gt;"
 </code></pre>
 <p>The default call cache location will be the user's cache directory joined with
 <code>./sprocket/calls</code>.</p>
@@ -503,11 +503,19 @@ as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
 <p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
 enabled for every invocation of <code>sprocket run</code>:</p>
 <pre><code class="language-toml">[run.task]
-use_call_cache = true   # Defaults to `false`
+cache = "off|on|explicit" # defaults to `off`
 </code></pre>
-<p>By default, Sprocket will not enable call caching as it safer to let users
-consciously opt-in than potentially serve stale results from the cache
-without the user's knowledge that call caching is occurring.</p>
+<p>The supported values for the <code>cache</code> setting are:</p>
+<ul>
+<li><code>off</code> - do not check the call cache or write new cache entries at all.</li>
+<li><code>on</code> - check the call cache and write new cache entries for all tasks except
+those that have a <code>cacheable: false</code> hint.</li>
+<li><code>explicit</code> - check the call cache and write new cache entries <em>only</em> for
+tasks that have a <code>cacheable: true</code> hint.</li>
+</ul>
+<p>Sprocket will default the setting to <code>off</code> as it safer to let users consciously
+opt-in than potentially serve stale results from the cache without the user's
+knowledge that call caching is occurring.</p>
 <h2 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h2>
 <p>When call caching has been enabled, users may desire to opt-out of call caching
 for individual tasks or a single <code>sprocket run</code> invocation.</p>
