@@ -239,7 +239,7 @@ large files to calculate the digest will also be utilized.
 A `HEAD` request will be made for the remote file URL.
 
 If the remote URL is for a supported cloud storage service, the response is
-checked for the appropriate metadata header (e.g. `x-ms-meta-content-digest`,
+checked for the appropriate metadata header (e.g. `x-ms-meta-content_digest`,
 `x-amz-meta-content-digest`, or `x-goog-meta-content-digest`) and the header is
 treated like a [`content-digest`][content-digest] header.
 
