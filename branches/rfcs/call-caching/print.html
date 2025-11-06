@@ -399,7 +399,7 @@ large files to calculate the digest will also be utilized.</p>
 <h4 id="remote-file-digests"><a class="header" href="#remote-file-digests">Remote File Digests</a></h4>
 <p>A <code>HEAD</code> request will be made for the remote file URL.</p>
 <p>If the remote URL is for a supported cloud storage service, the response is
-checked for the appropriate metadata header (e.g. <code>x-ms-meta-content-digest</code>,
+checked for the appropriate metadata header (e.g. <code>x-ms-meta-content_digest</code>,
 <code>x-amz-meta-content-digest</code>, or <code>x-goog-meta-content-digest</code>) and the header is
 treated like a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>content-digest</code></a> header.</p>
 <p>Otherwise, the response must have either a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>content-digest</code></a>
