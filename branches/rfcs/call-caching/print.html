@@ -306,35 +306,40 @@ update the hasher with:</p>
 <p>For hashing the values of the <code>requirements</code> and <code>hints</code> section, a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a>
 hasher will be updated as described in this section.</p>
 <p>Compound values will recursively hash their contained values.</p>
+<h4 id="hashing-a-none-value"><a class="header" href="#hashing-a-none-value">Hashing a <code>None</code> value</a></h4>
+<p>A <code>None</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>0</code> to indicate a <code>None</code> variant.</li>
+</ol>
 <h4 id="hashing-a-boolean-value"><a class="header" href="#hashing-a-boolean-value">Hashing a <code>Boolean</code> value</a></h4>
 <p>A <code>Boolean</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>0</code> to indicate a <code>Boolean</code> variant.</li>
+<li>A byte with a value of <code>1</code> to indicate a <code>Boolean</code> variant.</li>
 <li>A byte with a value of <code>1</code> if the value is <code>true</code> or <code>0</code> if the value is
 <code>false</code>.</li>
 </ol>
 <h4 id="hashing-an-int-value"><a class="header" href="#hashing-an-int-value">Hashing an <code>Int</code> value</a></h4>
 <p>An <code>Int</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a a value of <code>1</code> to indicate an <code>Int</code> variant.</li>
+<li>A byte with a a value of <code>2</code> to indicate an <code>Int</code> variant.</li>
 <li>An 8 byte value representing the signed integer in little endian order.</li>
 </ol>
 <h4 id="hashing-a-float-value"><a class="header" href="#hashing-a-float-value">Hashing a <code>Float</code> value</a></h4>
 <p>A <code>Float</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>2</code> to indicate a <code>Float</code> variant.</li>
+<li>A byte with a value of <code>3</code> to indicate a <code>Float</code> variant.</li>
 <li>An 8 byte value representing the float in little endian order.</li>
 </ol>
 <h4 id="hashing-a-string-value"><a class="header" href="#hashing-a-string-value">Hashing a <code>String</code> value</a></h4>
 <p>A <code>String</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>3</code> to indicate a <code>String</code> variant.</li>
+<li>A byte with a value of <code>4</code> to indicate a <code>String</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>String</code>.</li>
 </ol>
 <h4 id="hashing-a-file-value"><a class="header" href="#hashing-a-file-value">Hashing a <code>File</code> value</a></h4>
 <p>A <code>File</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>4</code> to indicate a <code>File</code> variant.</li>
+<li>A byte with a value of <code>5</code> to indicate a <code>File</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>File</code>.</li>
 </ol>
 <p>For the purpose of hashing a <code>File</code> value, the contents of the file specified
@@ -344,7 +349,7 @@ when backend input content digests are produced.</p>
 <h4 id="hashing-a-directory-value"><a class="header" href="#hashing-a-directory-value">Hashing a <code>Directory</code> value</a></h4>
 <p>A <code>Directory</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>5</code> to indicate a <code>Directory</code> variant.</li>
+<li>A byte with a value of <code>6</code> to indicate a <code>Directory</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-internal-strings">internal string</a> value of the <code>Directory</code>.</li>
 </ol>
 <p>For the purpose of hashing a <code>Directory</code> value, the contents of the directory
@@ -353,37 +358,58 @@ specified by the value are <em>not</em> considered.</p>
 <h4 id="hashing-a-pair-value"><a class="header" href="#hashing-a-pair-value">Hashing a <code>Pair</code> value</a></h4>
 <p>A <code>Pair</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>6</code> to indicate a <code>Pair</code> variant.</li>
+<li>A byte with a value of <code>7</code> to indicate a <code>Pair</code> variant.</li>
 <li>The recursive hash of the <code>left</code> <a href="0002-call-caching.html#hashing-wdl-values">value</a>.</li>
 <li>The recursive hash of the <code>right</code> <a href="0002-call-caching.html#hashing-wdl-values">value</a>.</li>
 </ol>
 <h4 id="hashing-an-array-value"><a class="header" href="#hashing-an-array-value">Hashing an <code>Array</code> value</a></h4>
 <p>An <code>Array</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>7</code> to indicate an <code>Array</code> variant.</li>
+<li>A byte with a value of <code>8</code> to indicate an <code>Array</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of <a href="0002-call-caching.html#hashing-wdl-values">elements</a>
 contained in the array, in insertion order.</li>
 </ol>
 <h4 id="hashing-a-map-value"><a class="header" href="#hashing-a-map-value">Hashing a <code>Map</code> value</a></h4>
 <p>A <code>Map</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>8</code> to indicate a <code>Map</code> variant.</li>
+<li>A byte with a value of <code>9</code> to indicate a <code>Map</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-wdl-values">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs, in insertion order.</li>
 </ol>
 <h4 id="hashing-an-object-value"><a class="header" href="#hashing-an-object-value">Hashing an <code>Object</code> value</a></h4>
 <p>An <code>Object</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>9</code> to indicate an <code>Object</code> variant.</li>
+<li>A byte with a value of <code>10</code> to indicate an <code>Object</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs, ordered lexicographically by key.</li>
 </ol>
 <h4 id="hashing-a-struct-value"><a class="header" href="#hashing-a-struct-value">Hashing a <code>Struct</code> value</a></h4>
 <p>A <code>Struct</code> value will update the hasher with:</p>
 <ol>
-<li>A byte with a value of <code>10</code> to indicate a <code>Struct</code> variant.</li>
+<li>A byte with a value of <code>11</code> to indicate a <code>Struct</code> variant.</li>
 <li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">field name</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
 pairs, ordered lexicographically by field name.</li>
+</ol>
+<h4 id="hashing-a-hints-value-wdl-12"><a class="header" href="#hashing-a-hints-value-wdl-12">Hashing a <code>hints</code> value (WDL 1.2+)</a></h4>
+<p>A <code>hints</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>12</code> to indicate a <code>hints</code> variant.</li>
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+pairs, ordered lexicographically by key.</li>
+</ol>
+<h4 id="hashing-an-inputs-value-wdl-12"><a class="header" href="#hashing-an-inputs-value-wdl-12">Hashing an <code>inputs</code> value (WDL 1.2+)</a></h4>
+<p>An <code>inputs</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>13</code> to indicate a <code>inputs</code> variant.</li>
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+pairs, ordered lexicographically by key.</li>
+</ol>
+<h4 id="hashing-an-outputs-value-wdl-12"><a class="header" href="#hashing-an-outputs-value-wdl-12">Hashing an <code>outputs</code> value (WDL 1.2+)</a></h4>
+<p>An <code>outputs</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>14</code> to indicate a <code>outputs</code> variant.</li>
+<li>The <a href="0002-call-caching.html#hashing-sequences">sequence</a> of (<a href="0002-call-caching.html#hashing-internal-strings">key</a>, <a href="0002-call-caching.html#hashing-wdl-values">value</a>)
+pairs, ordered lexicographically by key.</li>
 </ol>
 <h3 id="calculating-content-digests"><a class="header" href="#calculating-content-digests">Calculating Content Digests</a></h3>
 <p>As <code>wdl-engine</code> already calculates digests of files and directories for
