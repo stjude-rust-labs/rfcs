@@ -124,11 +124,17 @@ hasher will be updated as described in this section.
 
 Compound values will recursively hash their contained values.
 
+#### Hashing a `None` value
+
+A `None` value will update the hasher with:
+
+1. A byte with a value of `0` to indicate a `None` variant.
+
 #### Hashing a `Boolean` value
 
 A `Boolean` value will update the hasher with:
 
-1. A byte with a value of `0` to indicate a `Boolean` variant.
+1. A byte with a value of `1` to indicate a `Boolean` variant.
 2. A byte with a value of `1` if the value is `true` or `0` if the value is
    `false`.
 
@@ -136,28 +142,28 @@ A `Boolean` value will update the hasher with:
 
 An `Int` value will update the hasher with:
 
-1. A byte with a a value of `1` to indicate an `Int` variant.
+1. A byte with a a value of `2` to indicate an `Int` variant.
 2. An 8 byte value representing the signed integer in little endian order.
 
 #### Hashing a `Float` value
 
 A `Float` value will update the hasher with:
 
-1. A byte with a value of `2` to indicate a `Float` variant.
+1. A byte with a value of `3` to indicate a `Float` variant.
 2. An 8 byte value representing the float in little endian order.
 
 #### Hashing a `String` value
 
 A `String` value will update the hasher with:
 
-1. A byte with a value of `3` to indicate a `String` variant.
+1. A byte with a value of `4` to indicate a `String` variant.
 2. The [internal string](#hashing-internal-strings) value of the `String`.
 
 #### Hashing a `File` value
 
 A `File` value will update the hasher with:
 
-1. A byte with a value of `4` to indicate a `File` variant.
+1. A byte with a value of `5` to indicate a `File` variant.
 2. The [internal string](#hashing-internal-strings) value of the `File`.
 
 For the purpose of hashing a `File` value, the contents of the file specified
@@ -170,7 +176,7 @@ when backend input content digests are produced.
 
 A `Directory` value will update the hasher with:
 
-1. A byte with a value of `5` to indicate a `Directory` variant.
+1. A byte with a value of `6` to indicate a `Directory` variant.
 2. The [internal string](#hashing-internal-strings) value of the `Directory`.
 
 For the purpose of hashing a `Directory` value, the contents of the directory
@@ -182,7 +188,7 @@ If the `Directory` is a backend input, the contents will be taken into considera
 
 A `Pair` value will update the hasher with:
 
-1. A byte with a value of `6` to indicate a `Pair` variant.
+1. A byte with a value of `7` to indicate a `Pair` variant.
 2. The recursive hash of the `left` [value](#hashing-wdl-values).
 3. The recursive hash of the `right` [value](#hashing-wdl-values).
 
@@ -190,7 +196,7 @@ A `Pair` value will update the hasher with:
 
 An `Array` value will update the hasher with:
 
-1. A byte with a value of `7` to indicate an `Array` variant.
+1. A byte with a value of `8` to indicate an `Array` variant.
 2. The [sequence](#hashing-sequences) of [elements](#hashing-wdl-values)
    contained in the array, in insertion order.
 
@@ -198,7 +204,7 @@ An `Array` value will update the hasher with:
 
 A `Map` value will update the hasher with:
 
-1. A byte with a value of `8` to indicate a `Map` variant.
+1. A byte with a value of `9` to indicate a `Map` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-wdl-values), [value](#hashing-wdl-values))
    pairs, in insertion order.
 
@@ -206,7 +212,7 @@ A `Map` value will update the hasher with:
 
 An `Object` value will update the hasher with:
 
-1. A byte with a value of `9` to indicate an `Object` variant.
+1. A byte with a value of `10` to indicate an `Object` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, ordered lexicographically by key.
 
@@ -214,9 +220,33 @@ An `Object` value will update the hasher with:
 
 A `Struct` value will update the hasher with:
 
-1. A byte with a value of `10` to indicate a `Struct` variant.
+1. A byte with a value of `11` to indicate a `Struct` variant.
 2. The [sequence](#hashing-sequences) of ([field name](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, ordered lexicographically by field name.
+
+#### Hashing a `hints` value (WDL 1.2+)
+
+A `hints` value will update the hasher with:
+
+1. A byte with a value of `12` to indicate a `hints` variant.
+2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
+   pairs, ordered lexicographically by key.
+
+#### Hashing an `inputs` value (WDL 1.2+)
+
+An `inputs` value will update the hasher with:
+
+1. A byte with a value of `13` to indicate a `inputs` variant.
+2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
+   pairs, ordered lexicographically by key.
+
+#### Hashing an `outputs` value (WDL 1.2+)
+
+An `outputs` value will update the hasher with:
+
+1. A byte with a value of `14` to indicate a `outputs` variant.
+2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
+   pairs, ordered lexicographically by key.
 
 ### Calculating Content Digests
 
