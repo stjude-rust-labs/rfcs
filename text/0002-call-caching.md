@@ -214,7 +214,7 @@ An `Object` value will update the hasher with:
 
 1. A byte with a value of `10` to indicate an `Object` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs, ordered lexicographically by key.
+   pairs, in insertion order.
 
 #### Hashing a `Struct` value
 
@@ -222,7 +222,7 @@ A `Struct` value will update the hasher with:
 
 1. A byte with a value of `11` to indicate a `Struct` variant.
 2. The [sequence](#hashing-sequences) of ([field name](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs, ordered lexicographically by field name.
+   pairs, in field declaration order.
 
 #### Hashing a `hints` value (WDL 1.2+)
 
@@ -230,23 +230,23 @@ A `hints` value will update the hasher with:
 
 1. A byte with a value of `12` to indicate a `hints` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs, ordered lexicographically by key.
+   pairs, in insertion order.
 
-#### Hashing an `inputs` value (WDL 1.2+)
+#### Hashing an `input` value (WDL 1.2+)
 
-An `inputs` value will update the hasher with:
+An `input` value will update the hasher with:
 
-1. A byte with a value of `13` to indicate a `inputs` variant.
+1. A byte with a value of `13` to indicate an `input` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs, ordered lexicographically by key.
+   pairs, in insertion order.
 
-#### Hashing an `outputs` value (WDL 1.2+)
+#### Hashing an `output` value (WDL 1.2+)
 
-An `outputs` value will update the hasher with:
+An `output` value will update the hasher with:
 
-1. A byte with a value of `14` to indicate a `outputs` variant.
+1. A byte with a value of `14` to indicate an `output` variant.
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs, ordered lexicographically by key.
+   pairs, in insertion order.
 
 ### Calculating Content Digests
 
