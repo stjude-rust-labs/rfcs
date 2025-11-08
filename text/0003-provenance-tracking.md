@@ -87,13 +87,13 @@ As the yak grooming business grows, the user's team begins submitting hundreds o
 url = "postgresql://postgres:postgres@db.example.com:5432/sprocket"
 ```
 
-Then they run a single migration command to transfer their existing SQLite data:
+Then they run a single command to transfer their existing SQLite data:
 
 ```bash
-sprocket database migrate --from ./out/database.db --to postgresql://postgres:postgres@db.example.com:5432/sprocket
+sprocket database transfer --from ./out/database.db --to postgresql://postgres:postgres@db.example.com:5432/sprocket
 ```
 
-This migrates all historical workflow executions and index logs to PostgreSQL. The familiar output directory structure remains unchanged—`runs/` and `index/` still live on the filesystem—but the database now runs on dedicated infrastructure with MVCC-based concurrency control, enabling unlimited concurrent writers across multiple Sprocket server instances. The user has progressed from zero-configuration local execution to enterprise-scale workflow orchestration, with each transition requiring configuration only when their needs demanded it. This is the Sprocket "heavy-disclosure" experience.
+This transfers all historical workflow executions and index logs to PostgreSQL. The familiar output directory structure remains unchanged—`runs/` and `index/` still live on the filesystem—but the database now runs on dedicated infrastructure with MVCC-based concurrency control, enabling unlimited concurrent writers across multiple Sprocket server instances. The user has progressed from zero-configuration local execution to enterprise-scale workflow orchestration, with each transition requiring configuration only when their needs demanded it. This is the Sprocket "heavy-disclosure" experience.
 
 This progression happens naturally as the user's needs grow. Each step builds on the previous one, with infrastructure complexity introduced only when scale demands it.
 
