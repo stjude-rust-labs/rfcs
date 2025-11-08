@@ -234,7 +234,7 @@ The output directory is the fundamental unit of organization containing all work
 ### Directory Behaviors
 
 * On first `sprocket run` or `sprocket server` invocation, `./out/` is created if missing, `database.db` is initialized with schema migrations. If invoked via `sprocket run`, the `runs/<workflow_name>/<timestamp>/` directory structure is created for execution.
-* Output directory location defaults to `./out/` relative to current working directory, configurable via `--out-dir` flag, `SPROCKET_output_dir` environment variable, or `~/.config/sprocket/Sprocket.toml`.
+* Output directory location defaults to `./out/` relative to current working directory, configurable via `--out-dir` flag, `SPROCKET_OUTPUT_DIR` environment variable, or `~/.config/sprocket/Sprocket.toml`.
 * The entire output directory is relocatable via `mv`. All paths stored in `database.db` are relative to the database file, enabling portability when the output directory is moved.
 
 ## Index Functionality
