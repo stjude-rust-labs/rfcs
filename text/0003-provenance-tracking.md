@@ -362,30 +362,6 @@ The server provides an HTTP API for submitting workflows and querying run histor
 
 ### Server Configuration
 
-Configuration can be provided via file or command-line flags.
-
-**Configuration file** (`~/.config/sprocket/Sprocket.toml`):
-```toml
-# Global out-dir (used by both CLI and server)
-output_dir = "/data/sprocket/out"
-
-[server]
-host = "127.0.0.1"
-port = 8080
-```
-
-**Starting the server**:
-```bash
-# Using config file
-sprocket server --config server.toml
-
-# Using inline config
-sprocket server --out-dir ./out --port 8080
-
-# Using defaults (./out/, 127.0.0.1:8080)
-sprocket server
-```
-
 ### Execution Flow
 
 ```mermaid
