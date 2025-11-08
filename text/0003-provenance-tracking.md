@@ -78,9 +78,24 @@ Now satisfied with their organized outputs, the user realizes they'd like real-t
 sprocket server --port 8080
 ```
 
-The HTTP server starts immediately, connecting to the existing database and making all historical runs queryable through a REST API. They can now submit workflows via HTTP and monitor progress through API queries. All workflows submitted through the API are tracked in the same database alongside CLI submissions, and all outputs appear in the same `out/` directory structure. There's no database setup, no configuration files to manage, no migration of historical data—they simply started the server and gained remote access and monitoring capabilities. This is the Sprocket "heavy-disclosure" experience.
+The HTTP server starts immediately, connecting to the existing database and making all historical runs queryable through a REST API. They can now submit workflows via HTTP and monitor progress through API queries. All workflows submitted through the API are tracked in the same database alongside CLI submissions, and all outputs appear in the same `out/` directory structure. There's no database setup, no configuration files to manage, no migration of historical data—they simply started the server and gained remote access and monitoring capabilities.
 
-This progression happens naturally as the user's needs grow, without requiring infrastructure changes or data migration. Each step builds on the previous one while the underlying output directory and database remain unchanged.
+As the yak grooming business grows, the user's team begins submitting hundreds of workflows per day from multiple servers. SQLite's single-writer model handles this well initially, but they eventually want to scale to thousands of concurrent submissions with multiple Sprocket servers sharing a central database. At this point, they provision a PostgreSQL database and update their configuration:
+
+```toml
+[database]
+url = "postgresql://postgres:postgres@db.example.com:5432/sprocket"
+```
+
+Then they run a single migration command to transfer their existing SQLite data:
+
+```bash
+sprocket database migrate --from ./out/database.db --to postgresql://postgres:postgres@db.example.com:5432/sprocket
+```
+
+This migrates all historical workflow executions and index logs to PostgreSQL. The familiar output directory structure remains unchanged—`runs/` and `index/` still live on the filesystem—but the database now runs on dedicated infrastructure with MVCC-based concurrency control, enabling unlimited concurrent writers across multiple Sprocket server instances. The user has progressed from zero-configuration local execution to enterprise-scale workflow orchestration, with each transition requiring configuration only when their needs demanded it. This is the Sprocket "heavy-disclosure" experience.
+
+This progression happens naturally as the user's needs grow. Each step builds on the previous one, with infrastructure complexity introduced only when scale demands it.
 
 ## Architecture Overview
 
@@ -507,9 +522,13 @@ SQLite's Write-Ahead Logging (WAL) mode enables multiple concurrent readers with
 
 While not a major driving factor, SQLite's ubiquity should be considered for users who want to build custom tooling on top of the provenance database. Native language bindings exist for virtually every programming language and platform, and the file format is stable and well-documented. Users can query the database directly using standard SQLite clients, build custom analysis scripts in their preferred language, or integrate the database into dashboards without needing Sprocket-specific APIs.
 
-### Alternative: PostgreSQL
+### Future Work: PostgreSQL Support
 
-PostgreSQL was rejected for this initial implementation because it violates the zero-configuration principle. PostgreSQL offers better concurrent write performance through [MVCC (Multi-Version Concurrency Control)](https://www.postgresql.org/docs/current/mvcc-intro.html), remote database access over the network, more sophisticated query optimization for complex queries, and proven scalability to millions of records. However, it requires separate server installation and configuration before Sprocket can run. Users must manage connection strings with host, port, and credentials. The database becomes separate from the output directory, breaking portability and requiring a backup strategy independent of the output directory. Network dependencies introduce new failure modes, and version compatibility between PostgreSQL server and Sprocket client becomes a concern. Most critically, PostgreSQL is overkill for the access patterns involved—infrequent writes and simple queries. PostgreSQL support could be added in the future behind a database abstraction layer without changing the on-disk format, allowing users who need it to configure a connection string while keeping SQLite as the default.
+PostgreSQL support is planned as future work to enable enterprise-scale deployments. PostgreSQL offers better concurrent write performance through [MVCC (Multi-Version Concurrency Control)](https://www.postgresql.org/docs/current/mvcc-intro.html), remote database access over the network, more sophisticated query optimization for complex queries, and proven scalability to millions of records. These capabilities become valuable when organizations need to run multiple Sprocket server instances sharing a central database, or when workflow submission rates exceed SQLite's single-writer throughput.
+
+However, PostgreSQL requires separate server installation and configuration, violating the zero-configuration principle that makes Sprocket accessible to new users. Users must provision database infrastructure, manage connection strings with host, port, and credentials, and coordinate backups independently of the output directory. Network dependencies introduce new failure modes, and version compatibility between PostgreSQL server and Sprocket client becomes an operational concern. For the majority of use cases—single servers with infrequent writes and simple queries—PostgreSQL's complexity outweighs its benefits.
+
+The implementation strategy will introduce a database abstraction layer that keeps SQLite as the default while allowing users to opt into PostgreSQL via configuration. An automatic migration tool will transfer existing SQLite databases to PostgreSQL, preserving all workflow execution history and index logs. The filesystem-based output directory structure (`runs/` and `index/`) will remain unchanged regardless of database backend, ensuring that users can migrate from SQLite to PostgreSQL without disrupting their existing workflows or file organization. This approach maintains progressive disclosure: users start with zero-configuration SQLite and migrate to PostgreSQL only when scale demands it.
 
 ### Alternative: Embedded Key-Value Stores (RocksDB, LMDB)
 
