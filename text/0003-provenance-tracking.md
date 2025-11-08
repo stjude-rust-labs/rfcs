@@ -6,11 +6,11 @@
 - [Motivation](#motivation)
 - [Architecture Overview](#architecture-overview)
 - [Database Schema](#database-schema)
+  - [SQLite Configuration](#sqlite-configuration)
   - [Metadata Table](#metadata-table)
   - [Invocations Table](#invocations-table)
   - [Workflows Table](#workflows-table)
   - [Index Log Table](#index-log-table)
-  - [Foreign Key Constraints](#foreign-key-constraints)
   - [Concurrency](#concurrency)
 - [Directory Structure](#directory-structure)
   - [Output Directory Layout](#output-directory-layout)
@@ -26,8 +26,6 @@
   - [Server Configuration](#server-configuration)
   - [Execution Flow](#execution-flow-1)
   - [REST API Endpoints](#rest-api-endpoints)
-- [Configuration](#configuration)
-  - [Configuration File](#configuration-file)
 - [Rationale and Alternatives](#rationale-and-alternatives)
   - [Why SQLite?](#why-sqlite)
   - [Future Work: PostgreSQL Support](#future-work-postgresql-support)
@@ -113,7 +111,35 @@ To ensure consistent workflow execution behavior between CLI and server modes, w
 
 ## Database Schema
 
-The provenance database uses a simple schema optimized for common queries while keeping implementation straightforward. Each output directory is versioned to ensure compatibility between different Sprocket releases.
+The provenance database will use a simple schema optimized for common queries while keeping implementation straightforward. Each output directory will be versioned to ensure compatibility between different Sprocket releases.
+
+### SQLite Configuration
+
+Sprocket will configure SQLite with specific pragma settings to optimize for concurrent access, performance, and data integrity. These settings are divided into two categories:
+
+**Persistent settings** (applied once when database is created):
+
+```sql
+pragma journal_mode = wal;
+pragma synchronous = normal;
+pragma temp_store = memory;
+```
+
+- `journal_mode = wal` enables [Write-Ahead Logging](https://www.sqlite.org/wal.html), allowing multiple concurrent readers with a single writer. This setting persists across all connections and provides the foundation for CLI and server to share the database.
+- `synchronous = normal` balances durability and performance in WAL mode. The database remains safe from corruption but may lose the most recent transaction in the event of a power failure or system crash.
+- `temp_store = memory` stores temporary tables in memory for better performance.
+
+**Per-connection settings** (applied when opening each connection):
+
+```sql
+pragma foreign_keys = on;
+pragma busy_timeout = 5000;
+pragma cache_size = 2000;
+```
+
+- `foreign_keys = on` enables foreign key constraint enforcement for referential integrity.
+- `busy_timeout = 5000` configures a 5-second timeout when the database is locked. If a write cannot proceed immediately due to another concurrent write, SQLite will retry for up to 5 seconds before returning an error. This prevents spurious failures during normal concurrent access patterns.
+- `cache_size = 2000` allocates approximately 8MB for SQLite's page cache (assuming 4KB pages), improving query performance.
 
 ### Metadata Table
 
@@ -207,10 +233,6 @@ create table if not exists index_log (
 ```
 
 Each time a workflow creates or updates a symlink in the index (via `--index-on`), a record is inserted into this table. For workflows that update an existing index path, both the old and new symlink targets are preserved in the log, enabling complete historical tracking. Users can query this table to determine what data was indexed at any point in time by finding the most recent log entry before a given date.
-
-### Foreign Key Constraints
-
-SQLite foreign key constraints are enabled via `pragma foreign_keys = on` at connection time. The `workflows.invocation_id` foreign key ensures referential integrity.
 
 ### Concurrency
 
@@ -490,20 +512,6 @@ GET /api/workflows/550e8400-e29b-41d4-a716-446655440000
 ```
 
 CLI and server operate simultaneously on the same output directory. A workflow submitted via `sprocket run` appears in `GET /api/workflows` queries as soon as the database transaction commits. All workflows share the same database regardless of submission method.
-
-## Configuration
-
-### Configuration File
-
-The following keys will be added to the Sprocket configuration.
-
-```toml
-output_dir = "/data/sprocket/out"
-
-[server]
-host = "127.0.0.1"
-port = 8080
-```
 
 ## Rationale and Alternatives
 
