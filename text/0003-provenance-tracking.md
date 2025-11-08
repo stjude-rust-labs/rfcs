@@ -30,7 +30,7 @@
   - [Configuration File](#configuration-file)
 - [Rationale and Alternatives](#rationale-and-alternatives)
   - [Why SQLite?](#why-sqlite)
-  - [Alternative: PostgreSQL](#alternative-postgresql)
+  - [Future Work: PostgreSQL Support](#future-work-postgresql-support)
   - [Alternative: Embedded Key-Value Stores (RocksDB, LMDB)](#alternative-embedded-key-value-stores-rocksdb-lmdb)
   - [Alternative: Filesystem Only (No Database)](#alternative-filesystem-only-no-database)
 
