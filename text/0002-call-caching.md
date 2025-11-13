@@ -23,86 +23,168 @@ reduce redundant execution.
 
 # Cache Key
 
-To be able to cache the result of a [WDL][wdl] task's execution, we must define
-what the _cache key_ of a task is.
+A task's cache key is derived from the task's document URI and the name of the
+task.
 
-A task's cache key is derived from a set of properties that, if altered, may
-affect the task's execution and thus the outputs produced by the task.
+This implies that the task's cache key is sensitive to the **WDL document being
+moved** or the **task being renamed**; either would cause a cache miss.
 
-This feature assumes that, for a given command and execution environment, a
-task's execution will produce ***functionally equivalent*** outputs. This means
-that while the outputs are not required to be byte-for-byte equivalent, they
-are required to not alter the evaluation of any downstream tasks that are
-dependent on those outputs. As this assumption does not hold true for every
-task, individual tasks may need to [opt-out of call caching](#opting-out) via a
-`cacheable` hint to Sprocket.
+The cache key will be calculated as a [Blake3][blake3] hash of:
 
-In WDL, the following properties are used for deriving a task's cache key:
+1. The WDL document URI [string](#hashing-internal-strings).
+2. The task identifier as a [string](#hashing-internal-strings). The task
+   identifier is based on the name of the task and its scatter index (if
+   present).
 
-* The evaluated `command` section text.
-* The evaluated `requirements` and `hints` (or `runtime` for WDL before 1.2)
-  section values.
-* The value of the task's "container" that is determined by:
-  1. The `container` (i.e. `docker`) requirement,  if present.
-  2. The value of the `task.container` setting provided to Sprocket, if present.
-  3. Finally, the built-in default which is currently `ubuntu:latest`.
-* The value of the task's "shell" that is determined by:
-  1. `task.shell` setting provided to Sprocket, if present.
-  2. The built-in default (`bash`).
-* The _content_ of input files and directories provided to the task's execution
-  environment (i.e. execution backend inputs).
+The result is a 32 byte Blake3 digest that can be represented as a
+lowercase hexadecimal string, (e.g.
+`295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a`) for the
+purpose of cache entry file names.
 
-Note that the following explicitly ***do not*** contribute to the identity of a
-task for the purpose of call caching:
+# Call Cache Directory
 
-* The WDL identifier of the task (i.e. its "name")
-* The individual `input` section values; an input value either contributes to
-  the evaluated `command` section text, a requirement or hint value, or ends up
-  as _content_ to the execution environment.
-* The WDL document source itself, with the exception of any changes that might
-  alter the above cache key properties after evaluation.
+Once a cache key is calculated, it can be used to locate an entry within the
+call cache directory.
 
-Note that the `container` used by the task may have a mutable tag on it (e.g.
-`latest`) and therefore may change underneath call caching. As Sprocket will
-not be resolving the referenced tag, a change to the tag or the image
-repository used will not bust the cache.
+The call cache directory may be configured via `sprocket.toml`:
 
-For this implementation of call caching, the cache key will be a 32 byte
-[Blake3][blake3] digest as a lowercase hexadecimal string, (e.g.
-`295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a`).
+```toml
+[run.task]
+cache_dir = "<path_to_cache>"
+```
 
-## Cache Key Calculation
+The default call cache location will be the user's cache directory joined with
+`./sprocket/calls`.
 
-The calculation of a task's cache key should occur just prior to where Sprocket
-sends the task to the execution backend; after the key is calculated, the call
-cache should be checked and the cached outputs reused if there was a [cache hit](#call-cache-hit).
+The call cache directory will contain an empty `.lock` file that will be used
+to acquire shared and exclusive file locks on the _entire_ call cache; the lock
+file serves to coordinate access between `sprocket run` and a future `sprocket clean`
+command.
 
-A cache key is only calculated _once_ upon the first evaluation of the task. If
-there is a cache miss and the task's execution fails, Sprocket will not cache
-the result of a retried execution even if it is successful.
+During the execution of `sprocket run`, only a single _shared lock_ will be
+acquired on the `.lock` file and kept for the entirety of the run.
 
-To calculate the cache key, a new [Blake3][blake3] hasher will be created and
-updated with the following:
+The call cache will have no eviction policy, meaning it will grow unbounded. A
+future `sprocket clean` command might give statistics of current cache sizes
+with the option to clean them, if desired. The `sprocket clean` command would
+take an _exclusive lock_ on the `.lock` file to block any `sprocket run`
+command from executing while it is operating.
 
-1. The evaluated command text [internal string](#hashing-internal-strings).
-2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs from the `requirements` section, ordered lexicographically by key.
-3. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
-   pairs from the `hints` section, ordered lexicographically by key.
-4. The calculated `container` [internal string](#hashing-internal-strings).
-5. The calculated `shell` [internal string](#hashing-internal-strings).
-6. The [sequence](#hashing-sequences) of ([location](#hashing-internal-strings), [content digest](#calculating-content-digests))
-   pairs of the backend inputs, ordered lexicographically by input location
-   (i.e. absolute path or URL).
+Each entry within the call cache will be a file with the same name of the
+task's cache key.
 
-The hasher will then be finalized to produce a Blake3 digest representing the
-cache key of the task.
+During a lookup of an entry in the cache, a _shared lock_ will be acquired on
+the individual entry file. During the updating of an entry in the cache, an
+_exclusive lock_ will be acquired on the individual entry file.
 
-_Note: a failure to calculate a cache key will result in an automatic cache
-miss and no cache entry created upon a successful task execution; the error
-that caused the failure to calculate the cache key will be logged._
+The file will contain a JSON object with the following information:
 
-### Hashing Internal Strings
+```json
+{
+  "version": 1,                          // A monotonic version for the entry format.
+  "command: "<string-digest>",           // The digest of the task's evaluated command.
+  "container": "<string>",               // The container used by the task.
+  "shell": "<string>",                   // The shell used by the task.
+  "requirements": [
+    "<key>": "<value-digest>",           // The requirement key and value digest
+    ...
+  ],
+  "hints": [
+    "<key>": "<value-digest>",           // The hint key and value digest
+    ...
+  ],
+  "inputs": [
+    "<path-or-url>": "<content-digest>", // The previous backend input and its content digest
+    ...
+  ],
+  "exit": <num>,                         // The last exit code of the task.
+  "stdout": {
+    "location": "<path-or-url>",         // The location of the last stdout output.
+    "digest": "<content-digest>".        // The content digest of the last stdout output.
+  },
+  "stderr": {
+    "location": "<path-or-url>",         // The location of the last stderr output.
+    "digest": "<content-digest>"         // The content digest of the last stderr output.
+  },
+  "work": {
+    "location": "<path-or-url>",         // The location of the last working directory.
+    "digest": "<content-digest>"         // The content digest of the last working directory.
+  }
+}
+```
+
+See the [section on cache entry digests](#cache-entry-digests) for information
+on how the digests in the cache entry file are calculated.
+
+# Call Cache Hit
+
+Checking for a cache hit acquires a _shared lock_ on the call cache entry file.
+
+A cache entry lookup only occurs for the _first_ execution of the task; the
+call cache is skipped for subsequent retries of the task.
+
+A call cache hit will occur if all of the following criteria are met:
+
+* A file with the same name as the task's cache key is present in the call cache
+  directory and the file can be deserialized to the expected JSON object.
+* The cache entry's `version` field matches the cache version expected by
+  Sprocket.
+* The digest of the currently executing task's evaluated command matches the
+  cache entry's `command` field.
+* The container used by the task matches the cache entry's `container` field.
+* The shell used by the task matches the cache entry's `shell` field.
+* The digests of the task's requirements exactly match those in the cache
+  entry's `requirements` field.
+* The digests of the task's hints exactly match those in the cache entry's
+  `hints` field.
+* The digests of the task's backend inputs exactly match those in the cache
+  entry's `inputs` field.
+* The digest of the cache entry's `stdout` field matches the current digest of
+  its location.
+* The digest of the cache entry's `stdout` field matches the current digest of
+  its location.
+* The digest of the cache entry's `work` field matches the current digest of
+  its location.
+
+If any of the criteria above are not met, the failing criteria is logged (e.g.
+"entry not present in the cache", "command was modified", "input was modified",
+"stdout file was modified", etc.) and it is treated as a cache miss.
+
+Upon a call cache hit, a `TaskExecutionResult` will be created from the
+`stdout`, `stderr`, and `work` fields of the cache entry and task execution
+will be skipped.
+
+# Call Cache Miss
+
+Upon a call cache miss, the task will be executed by passing the request to the
+task execution backend.
+
+After the task successfully executes _on its first attempt only_, the following
+occurs:
+
+* Content digests will be calculated for `stdout`, `stderr`, and `work` of the
+  execution result returned by the execution backend.
+* An _exclusive lock_ is acquired on the cache entry file.
+* The new cache entry is JSON serialized into the cache entry file.
+
+If a task fails to execute on its first attempt, the task's cache entry will
+not be updated regardless of a successful retry.
+
+***Note: a non-zero exit code of a task's execution is not inherently a failure
+as the WDL task may specify permissible non-zero exit codes.***
+
+# Cache Entry Digests
+
+A cache entry may contain three different types of digests as lowercase
+hexadecimal strings:
+
+* A digest produced by [hashing an internal string](#hashing-a-string-value).
+* A digest produced by [hashing a WDL value](#hashing-wdl-values).
+* A [content digest](#content-digests) of a backend input.
+
+[Blake3][blake3] will be used as the hash algorithm for producing the digests.
+
+## Hashing Internal Strings
 
 Hashing an internal string (i.e. a string used internally by the engine) will
 update the hasher with:
@@ -110,27 +192,20 @@ update the hasher with:
 1. A four byte length value in little endian order.
 2. The UTF-8 bytes representing the string.
 
-### Hashing Sequences
-
-Hashing a _sequence_ will update the hasher with:
-
-1. A four byte length value in little endian order.
-2. The hash of each element in the sequence.
-
-### Hashing WDL Values
+## Hashing WDL Values
 
 For hashing the values of the `requirements` and `hints` section, a [Blake3][blake3]
 hasher will be updated as described in this section.
 
 Compound values will recursively hash their contained values.
 
-#### Hashing a `None` value
+### Hashing a `None` value
 
 A `None` value will update the hasher with:
 
 1. A byte with a value of `0` to indicate a `None` variant.
 
-#### Hashing a `Boolean` value
+### Hashing a `Boolean` value
 
 A `Boolean` value will update the hasher with:
 
@@ -138,28 +213,28 @@ A `Boolean` value will update the hasher with:
 2. A byte with a value of `1` if the value is `true` or `0` if the value is
    `false`.
 
-#### Hashing an `Int` value
+### Hashing an `Int` value
 
 An `Int` value will update the hasher with:
 
 1. A byte with a a value of `2` to indicate an `Int` variant.
 2. An 8 byte value representing the signed integer in little endian order.
 
-#### Hashing a `Float` value
+### Hashing a `Float` value
 
 A `Float` value will update the hasher with:
 
 1. A byte with a value of `3` to indicate a `Float` variant.
 2. An 8 byte value representing the float in little endian order.
 
-#### Hashing a `String` value
+### Hashing a `String` value
 
 A `String` value will update the hasher with:
 
 1. A byte with a value of `4` to indicate a `String` variant.
 2. The [internal string](#hashing-internal-strings) value of the `String`.
 
-#### Hashing a `File` value
+### Hashing a `File` value
 
 A `File` value will update the hasher with:
 
@@ -172,7 +247,7 @@ by the value are _not_ considered.
 If the `File` is a backend input, the contents will be taken into consideration
 when backend input content digests are produced.
 
-#### Hashing a `Directory` value
+### Hashing a `Directory` value
 
 A `Directory` value will update the hasher with:
 
@@ -182,9 +257,10 @@ A `Directory` value will update the hasher with:
 For the purpose of hashing a `Directory` value, the contents of the directory
 specified by the value are _not_ considered.
 
-If the `Directory` is a backend input, the contents will be taken into consideration when backend input content digests are produced.
+If the `Directory` is a backend input, the contents will be taken into
+consideration when backend input content digests are produced.
 
-#### Hashing a `Pair` value
+### Hashing a `Pair` value
 
 A `Pair` value will update the hasher with:
 
@@ -192,7 +268,7 @@ A `Pair` value will update the hasher with:
 2. The recursive hash of the `left` [value](#hashing-wdl-values).
 3. The recursive hash of the `right` [value](#hashing-wdl-values).
 
-#### Hashing an `Array` value
+### Hashing an `Array` value
 
 An `Array` value will update the hasher with:
 
@@ -216,7 +292,7 @@ An `Object` value will update the hasher with:
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, in insertion order.
 
-#### Hashing a `Struct` value
+### Hashing a `Struct` value
 
 A `Struct` value will update the hasher with:
 
@@ -224,7 +300,7 @@ A `Struct` value will update the hasher with:
 2. The [sequence](#hashing-sequences) of ([field name](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, in field declaration order.
 
-#### Hashing a `hints` value (WDL 1.2+)
+### Hashing a `hints` value (WDL 1.2+)
 
 A `hints` value will update the hasher with:
 
@@ -232,7 +308,7 @@ A `hints` value will update the hasher with:
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, in insertion order.
 
-#### Hashing an `input` value (WDL 1.2+)
+### Hashing an `input` value (WDL 1.2+)
 
 An `input` value will update the hasher with:
 
@@ -240,7 +316,7 @@ An `input` value will update the hasher with:
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, in insertion order.
 
-#### Hashing an `output` value (WDL 1.2+)
+### Hashing an `output` value (WDL 1.2+)
 
 An `output` value will update the hasher with:
 
@@ -248,7 +324,14 @@ An `output` value will update the hasher with:
 2. The [sequence](#hashing-sequences) of ([key](#hashing-internal-strings), [value](#hashing-wdl-values))
    pairs, in insertion order.
 
-### Calculating Content Digests
+### Hashing Sequences
+
+Hashing a _sequence_ will update the hasher with:
+
+1. A four byte length value in little endian order.
+2. The hash of each element in the sequence.
+
+## Content Digests
 
 As `wdl-engine` already calculates digests of files and directories for
 uploading files to cloud storage, the call caching implementation will make use
@@ -258,59 +341,69 @@ Keep in mind that `File` and `Directory` values may be either local file paths
 (e.g. `/foo/bar.txt`) or remote URLs (e.g. `https://example.com/bar.txt`,
 `s3://foo/bar.txt`, etc.).
 
-#### Local File Digests
+### Local File Digests
 
 Calculating the content digest of a local file is as simple as feeding every
 byte of the file's contents to a [Blake3][blake3] hasher; functions that `mmap`
 large files to calculate the digest will also be utilized.
 
-#### Remote File Digests
+### Remote File Digests
 
 A `HEAD` request will be made for the remote file URL.
 
 If the remote URL is for a supported cloud storage service, the response is
 checked for the appropriate metadata header (e.g. `x-ms-meta-content_digest`,
 `x-amz-meta-content-digest`, or `x-goog-meta-content-digest`) and the header is
-treated like a [`content-digest`][content-digest] header.
+treated like a [`Content-Digest`][content-digest] header.
 
-Otherwise, the response must have either a [`content-digest`][content-digest]
+Otherwise, the response must have either a [`Content-Digest`][content-digest]
 header or a [strong `ETag`][etag] header. If the response does not have the
 required header or if the header's value is invalid, it is treated as a failure
-to calculate the cache key.
-
-As the [`content-digest`][content-digest] header does not currently have a
-registered digest algorithm for Blake3, the header's value is hashed as an
-[internal string](#hashing-internal-strings) to produce the Blake3 digest.
+to calculate the content digest.
 
 If the `HEAD` request is unsuccessful and the error is considered to be a
 "transient" failure (e.g. a 500 response), the `HEAD` request is retried
 internally up to some configurable limit. If the request is unsuccessful after
-exhausting the retries, it is treated as a failure to calculate the cache key.
+exhausting the retries, it is treated as a failure to calculate the content
+digest.
 
-Note that Sprocket will *not* verify that the `content-digest` header matches
-the actual content digest of the file as that requires downloading its entire
-contents.
+If a `Content-Digest` header was returned, the hasher is updated with:
 
-#### Local Directory Digests
+* A `0` byte to indicate the header was `Content-Digest`.
+* The [algorithm string](#hashing-internal-strings) of the header.
+* The [sequence of digest bytes](#hashing-sequences) of the header.
 
-The content digest of a local directory is calculated by walking the directory
-in a consistent order and updating a Blake3 hasher based on each entry of the
-directory.
+If an `ETag` header was returned, the hasher is updated with:
+
+* A `1` byte to indicate the header was `ETag`.
+* The [strong ETag header value string](#hashing-internal-strings).
+
+
+Note that Sprocket will *not* verify that the content digest reported by the
+header matches the actual content digest of the file as that requires
+downloading the file's entire contents.
+
+### Local Directory Digests
+
+The content digest of a local directory is calculated by recursively walking
+the directory in a consistent order and updating a Blake3 hasher based on each
+entry of the directory.
 
 A directory's entry is hashed with:
 
-1. The [basename](#hashing-internal-strings) of the directory entry.
-2. The 32 byte Blake3 digest of the entry; if the entry is itself a directory, a
-   recursion takes place based on the path to the sub-directory.
+1. The [relative path](#hashing-internal-strings) of the directory entry.
+2. A `0` byte if the entry is a file or `1` if it is a directory.
+3. If the entry is a file, the hasher is updated with the contents of the file.
 
 Finally, a four byte (little endian) entry count value is written to the hasher
 before it is finalized to produce the 32 byte Blake3 content digest of the
 directory.
 
-***Note: symbolic links to directories within a directory input will not be
-supported for call caching and be treated as an error.***
+***Note: it is an error if the directory contains a symbolic link to a
+directory that creates a cycle (i.e. to an ancestor of the directory being
+hashed).***
 
-#### Remote Directory Digests
+### Remote Directory Digests
 
 `cloud-copy` has the facility to walk a "directory" cloud storage URL; it uses
 the specific cloud storage API to list all objects that start with the
@@ -329,100 +422,6 @@ A directory's entry is hashed with:
 Finally, a four byte (little endian) entry count value is written to the hasher
 before it is finalized to produce the 32 byte Blake3 content digest of the
 directory.
-
-# Call Cache Directory
-
-Once a cache key is calculated, it can be used to locate an entry within the
-call cache directory.
-
-The call cache directory may be configured via `sprocket.toml`:
-
-```toml
-[run.task]
-cache_dir = "<path_to_cache>"
-```
-
-The default call cache location will be the user's cache directory joined with
-`./sprocket/calls`.
-
-The call cache will have no eviction policy, meaning it will grow unbounded. A
-future `sprocket cleanup` command might give statistics of current cache sizes
-with the option to clean them, if desired.
-
-The call cache directory will contain an empty `.lock` file that will be used
-to acquire shared and exclusive file locks on the call cache; the lock file
-serves to coordinate access between concurrent `sprocket` processes.
-
-Each entry within the call cache will be a file with the same name of the
-task's cache key.
-
-The file will contain a JSON object with the following information:
-
-```json
-{
-  "version": 1,                     // A monotonic version for the file format.
-  "exit": <num>,                    // The last exit code of the task.
-  "stdout": {
-    "location": "<path-or-url>",    // The location of the last stdout output.
-    "digest": "<content-digest>".   // The content digest of the last stdout output.
-  },
-  "stderr": {
-    "location": "<path-or-url>",    // The location of the last stderr output.
-    "digest": "<content-digest>"    // The content digest of the last stderr output.
-  },
-  "work": {
-    "location": "<path-or-url>",    // The location of the last working directory.
-    "digest": "<content-digest>"    // The content digest of the last working directory.
-  }
-}
-```
-
-## Call Cache Hit
-
-If cache key calculation fails for any reason (e.g. a network error), the error
-will be logged and the result will be an automatic cache miss. Task evaluation
-will not fail due to an inability to calculate a cache key.
-
-Checking for a cache hit acquires a shared lock on the call cache directory.
-
-A call cache hit will occur if all of the following criteria are met:
-
-* A file with the same name as the task's cache key is present in the call cache
-  directory and the file can be deserialized to the expected JSON object.
-* The calculated current digest of the location matches the digest value from
-  the cache.
-
-If any of the criteria above are not met, the failing criteria is logged (e.g.
-"task not present in the cache", "output X no longer exists", "output X digest
-mismatch", etc.) and it is treated like a cache miss.
-
-Upon a call cache hit, a `TaskExecutionResult` will be created from the values
-read from the cache and task execution will be skipped.
-
-## Call Cache Miss
-
-Upon a call cache miss, the task will be executed by passing the request to the
-task execution backend.
-
-After the task successfully executes (including after retries), the following
-occurs:
-
-* Content digests will be calculated for `stdout`, `stderr`, and `work` of the
-  execution result returned by the execution backend.
-* An exclusive lock is acquired for inserting the execution result into the
-  cache.
-* The execution result is JSON serialized into the call cache entry for the
-  task.
-
-If a task fails to execute after exhausting retries, the cache will not be
-updated and the error returned as the result of task evaluation.
-
-In the unlikely event that a scattered task's evaluation all use the same cache
-key, the last successful execution result will be the one to be stored in the
-cache.
-
-***Note: a non-zero exit code of a task's execution is not inherently a failure
-as the WDL task may specify permissible non-zero exit codes.***
 
 # Enabling Call Caching
 
