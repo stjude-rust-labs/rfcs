@@ -79,25 +79,25 @@ _exclusive lock_ will be acquired on the individual entry file.
 
 The file will contain a JSON object with the following information:
 
-```json
+```javascript
 {
   "version": 1,                          // A monotonic version for the entry format.
-  "command: "<string-digest>",           // The digest of the task's evaluated command.
+  "command": "<string-digest>",          // The digest of the task's evaluated command.
   "container": "<string>",               // The container used by the task.
   "shell": "<string>",                   // The shell used by the task.
-  "requirements": [
+  "requirements": {
     "<key>": "<value-digest>",           // The requirement key and value digest
-    ...
-  ],
-  "hints": [
+    // ...
+  },
+  "hints": {
     "<key>": "<value-digest>",           // The hint key and value digest
-    ...
-  ],
-  "inputs": [
+    // ...
+  },
+  "inputs": {
     "<path-or-url>": "<content-digest>", // The previous backend input and its content digest
-    ...
-  ],
-  "exit": <num>,                         // The last exit code of the task.
+    // ...
+  },
+  "exit": 0,                             // The last exit code of the task.
   "stdout": {
     "location": "<path-or-url>",         // The location of the last stdout output.
     "digest": "<content-digest>".        // The content digest of the last stdout output.
