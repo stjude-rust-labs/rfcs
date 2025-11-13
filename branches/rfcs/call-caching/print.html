@@ -255,24 +255,24 @@ task's cache key.</p>
 the individual entry file. During the updating of an entry in the cache, an
 <em>exclusive lock</em> will be acquired on the individual entry file.</p>
 <p>The file will contain a JSON object with the following information:</p>
-<pre><code class="language-json">{
+<pre><code class="language-javascript">{
   "version": 1,                          // A monotonic version for the entry format.
-  "command: "&lt;string-digest&gt;",           // The digest of the task's evaluated command.
+  "command": "&lt;string-digest&gt;",          // The digest of the task's evaluated command.
   "container": "&lt;string&gt;",               // The container used by the task.
   "shell": "&lt;string&gt;",                   // The shell used by the task.
-  "requirements": [
+  "requirements": {
     "&lt;key&gt;": "&lt;value-digest&gt;",           // The requirement key and value digest
-    ...
-  ],
-  "hints": [
+    // ...
+  },
+  "hints": {
     "&lt;key&gt;": "&lt;value-digest&gt;",           // The hint key and value digest
-    ...
-  ],
-  "inputs": [
+    // ...
+  },
+  "inputs": {
     "&lt;path-or-url&gt;": "&lt;content-digest&gt;", // The previous backend input and its content digest
-    ...
-  ],
-  "exit": &lt;num&gt;,                         // The last exit code of the task.
+    // ...
+  },
+  "exit": 0,                             // The last exit code of the task.
   "stdout": {
     "location": "&lt;path-or-url&gt;",         // The location of the last stdout output.
     "digest": "&lt;content-digest&gt;".        // The content digest of the last stdout output.
