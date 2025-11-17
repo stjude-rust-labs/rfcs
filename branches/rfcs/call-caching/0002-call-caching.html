@@ -194,17 +194,18 @@ space.</p>
 re-executing a task will allow Sprocket to quickly resume a workflow run and
 reduce redundant execution.</p>
 <h1 id="cache-key"><a class="header" href="#cache-key">Cache Key</a></h1>
-<p>A task's cache key is derived from the task's document URI and the name of the
-task.</p>
-<p>This implies that the task's cache key is sensitive to the <strong>WDL document being
-moved</strong> or the <strong>task being renamed</strong>; either would cause a cache miss.</p>
-<p>The cache key will be calculated as a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> hash of:</p>
+<p>The cache key will a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> digest derived from hashing the following:</p>
 <ol>
 <li>The WDL document URI <a href="#hashing-internal-strings">string</a>.</li>
-<li>The task identifier as a <a href="#hashing-internal-strings">string</a>. The task
-identifier is based on the name of the task and its scatter index (if
-present).</li>
+<li>The task name as a <a href="#hashing-internal-strings">string</a>.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">name</a>,
+<a href="#hashing-wdl-values">value</a>) pairs that make up the task's inputs, ordered
+lexicographically by name.</li>
 </ol>
+<p>This implies that the task's cache key is sensitive to the <em><strong>WDL document being
+moved</strong></em>, <em><strong>the task being renamed</strong></em>, or the <em><strong>input values to the task
+changing</strong></em>; any of the above will cause a cache miss and Sprocket will not
+distinguish the cause for a cache miss when the key changes.</p>
 <p>The result is a 32 byte Blake3 digest that can be represented as a
 lowercase hexadecimal string, (e.g.
 <code>295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a</code>) for the
@@ -234,7 +235,7 @@ task's cache key.</p>
 <p>During a lookup of an entry in the cache, a <em>shared lock</em> will be acquired on
 the individual entry file. During the updating of an entry in the cache, an
 <em>exclusive lock</em> will be acquired on the individual entry file.</p>
-<p>The file will contain a JSON object with the following information:</p>
+<p>The entry file will contain a JSON object with the following information:</p>
 <pre><code class="language-javascript">{
   "version": 1,                          // A monotonic version for the entry format.
   "command": "&lt;string-digest&gt;",          // The digest of the task's evaluated command.
@@ -267,6 +268,9 @@ the individual entry file. During the updating of an entry in the cache, an
   }
 }
 </code></pre>
+<p><em>Note: as a cache entry may contain absolute paths pointing at files in the
+<code>runs</code> directory, deleting or moving a <code>runs</code> directory may invalidate entries
+in the call cache.</em></p>
 <p>See the <a href="#cache-entry-digests">section on cache entry digests</a> for information
 on how the digests in the cache entry file are calculated.</p>
 <h1 id="call-cache-hit"><a class="header" href="#call-cache-hit">Call Cache Hit</a></h1>
@@ -321,7 +325,7 @@ as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
 <p>A cache entry may contain three different types of digests as lowercase
 hexadecimal strings:</p>
 <ul>
-<li>A digest produced by <a href="#hashing-a-string-value">hashing an internal string</a>.</li>
+<li>A digest produced by <a href="#hashing-internal-strings">hashing an internal string</a>.</li>
 <li>A digest produced by <a href="#hashing-wdl-values">hashing a WDL value</a>.</li>
 <li>A <a href="#content-digests">content digest</a> of a backend input.</li>
 </ul>
