@@ -23,18 +23,18 @@ reduce redundant execution.
 
 # Cache Key
 
-A task's cache key is derived from the task's document URI and the name of the
-task.
-
-This implies that the task's cache key is sensitive to the **WDL document being
-moved** or the **task being renamed**; either would cause a cache miss.
-
-The cache key will be calculated as a [Blake3][blake3] hash of:
+The cache key will a [Blake3][blake3] digest derived from hashing the following:
 
 1. The WDL document URI [string](#hashing-internal-strings).
-2. The task identifier as a [string](#hashing-internal-strings). The task
-   identifier is based on the name of the task and its scatter index (if
-   present).
+2. The task name as a [string](#hashing-internal-strings).
+3. The [sequence](#hashing-sequences) of ([name](#hashing-internal-strings),
+   [value](#hashing-wdl-values)) pairs that make up the task's inputs, ordered
+   lexicographically by name.
+
+This implies that the task's cache key is sensitive to the ***WDL document being
+moved***, ***the task being renamed***, or the ***input values to the task
+changing***; any of the above will cause a cache miss and Sprocket will not
+distinguish the cause for a cache miss when the key changes.
 
 The result is a 32 byte Blake3 digest that can be represented as a
 lowercase hexadecimal string, (e.g.
@@ -77,7 +77,7 @@ During a lookup of an entry in the cache, a _shared lock_ will be acquired on
 the individual entry file. During the updating of an entry in the cache, an
 _exclusive lock_ will be acquired on the individual entry file.
 
-The file will contain a JSON object with the following information:
+The entry file will contain a JSON object with the following information:
 
 ```javascript
 {
@@ -112,6 +112,10 @@ The file will contain a JSON object with the following information:
   }
 }
 ```
+
+_Note: as a cache entry may contain absolute paths pointing at files in the
+`runs` directory, deleting or moving a `runs` directory may invalidate entries
+in the call cache._
 
 See the [section on cache entry digests](#cache-entry-digests) for information
 on how the digests in the cache entry file are calculated.
@@ -178,7 +182,7 @@ as the WDL task may specify permissible non-zero exit codes.***
 A cache entry may contain three different types of digests as lowercase
 hexadecimal strings:
 
-* A digest produced by [hashing an internal string](#hashing-a-string-value).
+* A digest produced by [hashing an internal string](#hashing-internal-strings).
 * A digest produced by [hashing a WDL value](#hashing-wdl-values).
 * A [content digest](#content-digests) of a backend input.
 
