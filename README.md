@@ -4,7 +4,9 @@
 
 This repo structure and contents are ~~stolen~~ borrowed from the [St. Jude Cloud Team's `rfcs` repo](https://github.com/stjudecloud/rfcs).
 
-RFC template is largely ~~stolen~~ inspired by the [rust-lang template](https://github.com/rust-lang/rfcs/blob/master/0000-template.md).
+These RFCs are meant to act as a public archive of our design intentions and to facilitate conversation both amongst the internal team and any external parties who may wish to help shape the future of the Sprocket project. Notably, these documents are not authoritative in any fashion. They are a snapshot of design goals; some details are important to hash out ahead of time, but practical experience with an implementation or changing understanding of a problem space as learned through use of a feature will likely cause deviations from the initial plans as laid out in these RFCs.
+
+We will not make an effort to backport changes to these documents if we feel the conversations have run their course.
 
 ## Install
 
