@@ -49,11 +49,11 @@ printf "# Drafts\n\n" > "${DRAFTS_FILE}"
 echo "The following are _candidate_ RFCs that are being rendered for easy review. They are *not* accepted St. Jude Rust Labs RFCs. For more information please see [the associated pull request](https://github.com/stjude-rust-labs/rfcs/pulls)." >> "${DRAFTS_FILE}"
 printf "\n\n" >> "${DRAFTS_FILE}"
 
-# for CURRENT_BRANCH in "${BRANCHES[@]}"; do
-#   if [[ "${CURRENT_BRANCH}" != "main" ]]; then
-#     echo "- [${CURRENT_BRANCH}](https://stjudecloud.github.io/rfcs/branches/$CURRENT_BRANCH)" >> "${DRAFTS_FILE}"
-#   fi
-# done
+for CURRENT_BRANCH in "${BRANCHES[@]}"; do
+  if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+    echo "- [${CURRENT_BRANCH}](https://stjude-rust-labs.github.io/rfcs/branches/$CURRENT_BRANCH)" >> "${DRAFTS_FILE}"
+  fi
+done
 
 # Loop through rfc branches, build and copy each to output dir
 echo "== Build RFC Branches =="
