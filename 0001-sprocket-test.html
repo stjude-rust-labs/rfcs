@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>St. Jude Rust Labs RFCs</title>
-        <meta name="robots" content="noindex">
+        <title>0001-sprocket-test - St. Jude Rust Labs RFCs</title>
 
 
         <!-- Custom HTML head -->
@@ -175,27 +174,7 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <img style="margin: 0px" alt="Repository Header Image" src="resources/repo-header.png" />
-<h1 id="requests-for-comments-for-the-st-jude-rust-labs-project"><a class="header" href="#requests-for-comments-for-the-st-jude-rust-labs-project">Requests For Comments for the St. Jude Rust Labs project</a></h1>
-<p>This repo structure and contents are <del>stolen</del> borrowed from the <a href="https://github.com/stjudecloud/rfcs">St. Jude Cloud Team’s <code>rfcs</code> repo</a>.</p>
-<p>These RFCs are meant to act as a public archive of our design intentions and to facilitate conversation both amongst the internal team and any external parties who may wish to help shape the future of the Sprocket project. Notably, these documents are not authoritative in any fashion. They are a snapshot of design goals; some details are important to hash out ahead of time, but practical experience with an implementation or changing understanding of a problem space as learned through use of a feature will likely cause deviations from the initial plans as laid out in these RFCs.</p>
-<p>We will not make an effort to backport changes to these documents if we feel the conversations have run their course.</p>
-<h2 id="install"><a class="header" href="#install">Install</a></h2>
-<pre><code class="language-sh">cargo install mdbook
-</code></pre>
-<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-sh">mdbook build
-python3 -m http.server -d book
-# visit the rendered version in your browser at http://localhost:8000.
-</code></pre>
-<h2 id="-license-and-legal"><a class="header" href="#-license-and-legal">📝 License and Legal</a></h2>
-<p>This project is licensed as either <a href="https://github.com/stjude-rust-labs/rfcs/blob/main/LICENSE-APACHE">Apache 2.0</a> or
-<a href="https://github.com/stjude-rust-labs/rfcs/blob/main/LICENSE-MIT">MIT</a> at your discretion. Additionally, please see <a href="https://github.com/stjude-rust-labs#disclaimer">the
-disclaimer</a> that applies to all
-crates and command line tools made available by St. Jude Rust Labs.</p>
-<p>Copyright © 2023-Present <a href="https://github.com/stjude">St. Jude Children’s Research Hospital</a>.</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<ul>
+                        <ul>
 <li>Feature Name: sprocket-test</li>
 <li>Start Date: 2025-08</li>
 </ul>
@@ -432,436 +411,18 @@ prefix = ["kitchen_sink_test"] # the `prefix` input will be shared by _all_ perm
 <p>As stated in the “motivation” section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)</p>
 <h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
 <p>At the time of writing, Sprocket does not yet have a call caching feature. But once that feature lands, it will prove useful for this framework as a way to reduce runtime on subsequent test runs.</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<ul>
-<li>Feature Name: call-caching</li>
-<li>Start Date: 2025-10</li>
-</ul>
-<h1 id="summary-1"><a class="header" href="#summary-1">Summary</a></h1>
-<p>The Sprocket call caching feature enables <code>sprocket run</code> to skip executing
-tasks that have been previously executed successfully and instead reuse the
-last known outputs of the task.</p>
-<h1 id="motivation-1"><a class="header" href="#motivation-1">Motivation</a></h1>
-<p>Sprocket currently cannot resume a failed or canceled workflow, meaning that it
-must re-execute every task that completed successfully on a prior run of that
-workflow.</p>
-<p>As tasks can be very expensive to execute, in terms of both compute resources
-and time, this can be a major barrier to using Sprocket in the bioinformatics
-space.</p>
-<p>The introduction of caching task outputs so that they can be reused in lieu of
-re-executing a task will allow Sprocket to quickly resume a workflow run and
-reduce redundant execution.</p>
-<h1 id="cache-key"><a class="header" href="#cache-key">Cache Key</a></h1>
-<p>The cache key will a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> digest derived from hashing the following:</p>
-<ol>
-<li>The WDL document URI <a href="#hashing-internal-strings">string</a>.</li>
-<li>The task name as a <a href="#hashing-internal-strings">string</a>.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">name</a>,
-<a href="#hashing-wdl-values">value</a>) pairs that make up the task’s inputs, ordered
-lexicographically by name.</li>
-</ol>
-<p>This implies that the task’s cache key is sensitive to the <em><strong>WDL document being
-moved</strong></em>, <em><strong>the task being renamed</strong></em>, or the <em><strong>input values to the task
-changing</strong></em>; any of the above will cause a cache miss and Sprocket will not
-distinguish the cause for a cache miss when the key changes.</p>
-<p>The result is a 32 byte Blake3 digest that can be represented as a
-lowercase hexadecimal string, (e.g.
-<code>295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a</code>) for the
-purpose of cache entry file names.</p>
-<h1 id="call-cache-directory"><a class="header" href="#call-cache-directory">Call Cache Directory</a></h1>
-<p>Once a cache key is calculated, it can be used to locate an entry within the
-call cache directory.</p>
-<p>The call cache directory may be configured via <code>sprocket.toml</code>:</p>
-<pre><code class="language-toml">[run.task]
-cache_dir = "&lt;path_to_cache&gt;"
-</code></pre>
-<p>The default call cache location will be the user’s cache directory joined with
-<code>./sprocket/calls</code>.</p>
-<p>The call cache directory will contain an empty <code>.lock</code> file that will be used
-to acquire shared and exclusive file locks on the <em>entire</em> call cache; the lock
-file serves to coordinate access between <code>sprocket run</code> and a future <code>sprocket clean</code>
-command.</p>
-<p>During the execution of <code>sprocket run</code>, only a single <em>shared lock</em> will be
-acquired on the <code>.lock</code> file and kept for the entirety of the run.</p>
-<p>The call cache will have no eviction policy, meaning it will grow unbounded. A
-future <code>sprocket clean</code> command might give statistics of current cache sizes
-with the option to clean them, if desired. The <code>sprocket clean</code> command would
-take an <em>exclusive lock</em> on the <code>.lock</code> file to block any <code>sprocket run</code>
-command from executing while it is operating.</p>
-<p>Each entry within the call cache will be a file with the same name of the
-task’s cache key.</p>
-<p>During a lookup of an entry in the cache, a <em>shared lock</em> will be acquired on
-the individual entry file. During the updating of an entry in the cache, an
-<em>exclusive lock</em> will be acquired on the individual entry file.</p>
-<p>The entry file will contain a JSON object with the following information:</p>
-<pre><code class="language-javascript">{
-  "version": 1,                          // A monotonic version for the entry format.
-  "command": "&lt;string-digest&gt;",          // The digest of the task's evaluated command.
-  "container": "&lt;string&gt;",               // The container used by the task.
-  "shell": "&lt;string&gt;",                   // The shell used by the task.
-  "requirements": {
-    "&lt;key&gt;": "&lt;value-digest&gt;",           // The requirement key and value digest
-    // ...
-  },
-  "hints": {
-    "&lt;key&gt;": "&lt;value-digest&gt;",           // The hint key and value digest
-    // ...
-  },
-  "inputs": {
-    "&lt;path-or-url&gt;": "&lt;content-digest&gt;", // The previous backend input and its content digest
-    // ...
-  },
-  "exit": 0,                             // The last exit code of the task.
-  "stdout": {
-    "location": "&lt;path-or-url&gt;",         // The location of the last stdout output.
-    "digest": "&lt;content-digest&gt;".        // The content digest of the last stdout output.
-  },
-  "stderr": {
-    "location": "&lt;path-or-url&gt;",         // The location of the last stderr output.
-    "digest": "&lt;content-digest&gt;"         // The content digest of the last stderr output.
-  },
-  "work": {
-    "location": "&lt;path-or-url&gt;",         // The location of the last working directory.
-    "digest": "&lt;content-digest&gt;"         // The content digest of the last working directory.
-  }
-}
-</code></pre>
-<p><em>Note: as a cache entry may contain absolute paths pointing at files in the
-<code>runs</code> directory, deleting or moving a <code>runs</code> directory may invalidate entries
-in the call cache.</em></p>
-<p>See the <a href="#cache-entry-digests">section on cache entry digests</a> for information
-on how the digests in the cache entry file are calculated.</p>
-<h1 id="call-cache-hit"><a class="header" href="#call-cache-hit">Call Cache Hit</a></h1>
-<p>Checking for a cache hit acquires a <em>shared lock</em> on the call cache entry file.</p>
-<p>A cache entry lookup only occurs for the <em>first</em> execution of the task; the
-call cache is skipped for subsequent retries of the task.</p>
-<p>A call cache hit will occur if all of the following criteria are met:</p>
-<ul>
-<li>A file with the same name as the task’s cache key is present in the call cache
-directory and the file can be deserialized to the expected JSON object.</li>
-<li>The cache entry’s <code>version</code> field matches the cache version expected by
-Sprocket.</li>
-<li>The digest of the currently executing task’s evaluated command matches the
-cache entry’s <code>command</code> field.</li>
-<li>The container used by the task matches the cache entry’s <code>container</code> field.</li>
-<li>The shell used by the task matches the cache entry’s <code>shell</code> field.</li>
-<li>The digests of the task’s requirements exactly match those in the cache
-entry’s <code>requirements</code> field.</li>
-<li>The digests of the task’s hints exactly match those in the cache entry’s
-<code>hints</code> field.</li>
-<li>The digests of the task’s backend inputs exactly match those in the cache
-entry’s <code>inputs</code> field.</li>
-<li>The digest of the cache entry’s <code>stdout</code> field matches the current digest of
-its location.</li>
-<li>The digest of the cache entry’s <code>stdout</code> field matches the current digest of
-its location.</li>
-<li>The digest of the cache entry’s <code>work</code> field matches the current digest of
-its location.</li>
-</ul>
-<p>If any of the criteria above are not met, the failing criteria is logged (e.g.
-“entry not present in the cache”, “command was modified”, “input was modified”,
-“stdout file was modified”, etc.) and it is treated as a cache miss.</p>
-<p>Upon a call cache hit, a <code>TaskExecutionResult</code> will be created from the
-<code>stdout</code>, <code>stderr</code>, and <code>work</code> fields of the cache entry and task execution
-will be skipped.</p>
-<h1 id="call-cache-miss"><a class="header" href="#call-cache-miss">Call Cache Miss</a></h1>
-<p>Upon a call cache miss, the task will be executed by passing the request to the
-task execution backend.</p>
-<p>After the task successfully executes <em>on its first attempt only</em>, the following
-occurs:</p>
-<ul>
-<li>Content digests will be calculated for <code>stdout</code>, <code>stderr</code>, and <code>work</code> of the
-execution result returned by the execution backend.</li>
-<li>An <em>exclusive lock</em> is acquired on the cache entry file.</li>
-<li>The new cache entry is JSON serialized into the cache entry file.</li>
-</ul>
-<p>If a task fails to execute on its first attempt, the task’s cache entry will
-not be updated regardless of a successful retry.</p>
-<p><em><strong>Note: a non-zero exit code of a task’s execution is not inherently a failure
-as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
-<h1 id="cache-entry-digests"><a class="header" href="#cache-entry-digests">Cache Entry Digests</a></h1>
-<p>A cache entry may contain three different types of digests as lowercase
-hexadecimal strings:</p>
-<ul>
-<li>A digest produced by <a href="#hashing-internal-strings">hashing an internal string</a>.</li>
-<li>A digest produced by <a href="#hashing-wdl-values">hashing a WDL value</a>.</li>
-<li>A <a href="#content-digests">content digest</a> of a backend input.</li>
-</ul>
-<p><a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> will be used as the hash algorithm for producing the digests.</p>
-<h2 id="hashing-internal-strings"><a class="header" href="#hashing-internal-strings">Hashing Internal Strings</a></h2>
-<p>Hashing an internal string (i.e. a string used internally by the engine) will
-update the hasher with:</p>
-<ol>
-<li>A four byte length value in little endian order.</li>
-<li>The UTF-8 bytes representing the string.</li>
-</ol>
-<h2 id="hashing-wdl-values"><a class="header" href="#hashing-wdl-values">Hashing WDL Values</a></h2>
-<p>For hashing the values of the <code>requirements</code> and <code>hints</code> section, a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a>
-hasher will be updated as described in this section.</p>
-<p>Compound values will recursively hash their contained values.</p>
-<h3 id="hashing-a-none-value"><a class="header" href="#hashing-a-none-value">Hashing a <code>None</code> value</a></h3>
-<p>A <code>None</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>0</code> to indicate a <code>None</code> variant.</li>
-</ol>
-<h3 id="hashing-a-boolean-value"><a class="header" href="#hashing-a-boolean-value">Hashing a <code>Boolean</code> value</a></h3>
-<p>A <code>Boolean</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>1</code> to indicate a <code>Boolean</code> variant.</li>
-<li>A byte with a value of <code>1</code> if the value is <code>true</code> or <code>0</code> if the value is
-<code>false</code>.</li>
-</ol>
-<h3 id="hashing-an-int-value"><a class="header" href="#hashing-an-int-value">Hashing an <code>Int</code> value</a></h3>
-<p>An <code>Int</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a a value of <code>2</code> to indicate an <code>Int</code> variant.</li>
-<li>An 8 byte value representing the signed integer in little endian order.</li>
-</ol>
-<h3 id="hashing-a-float-value"><a class="header" href="#hashing-a-float-value">Hashing a <code>Float</code> value</a></h3>
-<p>A <code>Float</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>3</code> to indicate a <code>Float</code> variant.</li>
-<li>An 8 byte value representing the float in little endian order.</li>
-</ol>
-<h3 id="hashing-a-string-value"><a class="header" href="#hashing-a-string-value">Hashing a <code>String</code> value</a></h3>
-<p>A <code>String</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>4</code> to indicate a <code>String</code> variant.</li>
-<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>String</code>.</li>
-</ol>
-<h3 id="hashing-a-file-value"><a class="header" href="#hashing-a-file-value">Hashing a <code>File</code> value</a></h3>
-<p>A <code>File</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>5</code> to indicate a <code>File</code> variant.</li>
-<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>File</code>.</li>
-</ol>
-<p>For the purpose of hashing a <code>File</code> value, the contents of the file specified
-by the value are <em>not</em> considered.</p>
-<p>If the <code>File</code> is a backend input, the contents will be taken into consideration
-when backend input content digests are produced.</p>
-<h3 id="hashing-a-directory-value"><a class="header" href="#hashing-a-directory-value">Hashing a <code>Directory</code> value</a></h3>
-<p>A <code>Directory</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>6</code> to indicate a <code>Directory</code> variant.</li>
-<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>Directory</code>.</li>
-</ol>
-<p>For the purpose of hashing a <code>Directory</code> value, the contents of the directory
-specified by the value are <em>not</em> considered.</p>
-<p>If the <code>Directory</code> is a backend input, the contents will be taken into
-consideration when backend input content digests are produced.</p>
-<h3 id="hashing-a-pair-value"><a class="header" href="#hashing-a-pair-value">Hashing a <code>Pair</code> value</a></h3>
-<p>A <code>Pair</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>7</code> to indicate a <code>Pair</code> variant.</li>
-<li>The recursive hash of the <code>left</code> <a href="#hashing-wdl-values">value</a>.</li>
-<li>The recursive hash of the <code>right</code> <a href="#hashing-wdl-values">value</a>.</li>
-</ol>
-<h3 id="hashing-an-array-value"><a class="header" href="#hashing-an-array-value">Hashing an <code>Array</code> value</a></h3>
-<p>An <code>Array</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>8</code> to indicate an <code>Array</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of <a href="#hashing-wdl-values">elements</a>
-contained in the array, in insertion order.</li>
-</ol>
-<h4 id="hashing-a-map-value"><a class="header" href="#hashing-a-map-value">Hashing a <code>Map</code> value</a></h4>
-<p>A <code>Map</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>9</code> to indicate a <code>Map</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-wdl-values">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in insertion order.</li>
-</ol>
-<h4 id="hashing-an-object-value"><a class="header" href="#hashing-an-object-value">Hashing an <code>Object</code> value</a></h4>
-<p>An <code>Object</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>10</code> to indicate an <code>Object</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in insertion order.</li>
-</ol>
-<h3 id="hashing-a-struct-value"><a class="header" href="#hashing-a-struct-value">Hashing a <code>Struct</code> value</a></h3>
-<p>A <code>Struct</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>11</code> to indicate a <code>Struct</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">field name</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in field declaration order.</li>
-</ol>
-<h3 id="hashing-a-hints-value-wdl-12"><a class="header" href="#hashing-a-hints-value-wdl-12">Hashing a <code>hints</code> value (WDL 1.2+)</a></h3>
-<p>A <code>hints</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>12</code> to indicate a <code>hints</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in insertion order.</li>
-</ol>
-<h3 id="hashing-an-input-value-wdl-12"><a class="header" href="#hashing-an-input-value-wdl-12">Hashing an <code>input</code> value (WDL 1.2+)</a></h3>
-<p>An <code>input</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>13</code> to indicate an <code>input</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in insertion order.</li>
-</ol>
-<h3 id="hashing-an-output-value-wdl-12"><a class="header" href="#hashing-an-output-value-wdl-12">Hashing an <code>output</code> value (WDL 1.2+)</a></h3>
-<p>An <code>output</code> value will update the hasher with:</p>
-<ol>
-<li>A byte with a value of <code>14</code> to indicate an <code>output</code> variant.</li>
-<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
-pairs, in insertion order.</li>
-</ol>
-<h3 id="hashing-sequences"><a class="header" href="#hashing-sequences">Hashing Sequences</a></h3>
-<p>Hashing a <em>sequence</em> will update the hasher with:</p>
-<ol>
-<li>A four byte length value in little endian order.</li>
-<li>The hash of each element in the sequence.</li>
-</ol>
-<h2 id="content-digests"><a class="header" href="#content-digests">Content Digests</a></h2>
-<p>As <code>wdl-engine</code> already calculates digests of files and directories for
-uploading files to cloud storage, the call caching implementation will make use
-of the existing content digest cache, with some improvements.</p>
-<p>Keep in mind that <code>File</code> and <code>Directory</code> values may be either local file paths
-(e.g. <code>/foo/bar.txt</code>) or remote URLs (e.g. <code>https://example.com/bar.txt</code>,
-<code>s3://foo/bar.txt</code>, etc.).</p>
-<h3 id="local-file-digests"><a class="header" href="#local-file-digests">Local File Digests</a></h3>
-<p>Calculating the content digest of a local file is as simple as feeding every
-byte of the file’s contents to a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> hasher; functions that <code>mmap</code>
-large files to calculate the digest will also be utilized.</p>
-<h3 id="remote-file-digests"><a class="header" href="#remote-file-digests">Remote File Digests</a></h3>
-<p>A <code>HEAD</code> request will be made for the remote file URL.</p>
-<p>If the remote URL is for a supported cloud storage service, the response is
-checked for the appropriate metadata header (e.g. <code>x-ms-meta-content_digest</code>,
-<code>x-amz-meta-content-digest</code>, or <code>x-goog-meta-content-digest</code>) and the header is
-treated like a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>Content-Digest</code></a> header.</p>
-<p>Otherwise, the response must have either a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>Content-Digest</code></a>
-header or a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/ETag">strong <code>ETag</code></a> header. If the response does not have the
-required header or if the header’s value is invalid, it is treated as a failure
-to calculate the content digest.</p>
-<p>If the <code>HEAD</code> request is unsuccessful and the error is considered to be a
-“transient” failure (e.g. a 500 response), the <code>HEAD</code> request is retried
-internally up to some configurable limit. If the request is unsuccessful after
-exhausting the retries, it is treated as a failure to calculate the content
-digest.</p>
-<p>If a <code>Content-Digest</code> header was returned, the hasher is updated with:</p>
-<ul>
-<li>A <code>0</code> byte to indicate the header was <code>Content-Digest</code>.</li>
-<li>The <a href="#hashing-internal-strings">algorithm string</a> of the header.</li>
-<li>The <a href="#hashing-sequences">sequence of digest bytes</a> of the header.</li>
-</ul>
-<p>If an <code>ETag</code> header was returned, the hasher is updated with:</p>
-<ul>
-<li>A <code>1</code> byte to indicate the header was <code>ETag</code>.</li>
-<li>The <a href="#hashing-internal-strings">strong ETag header value string</a>.</li>
-</ul>
-<p>Note that Sprocket will <em>not</em> verify that the content digest reported by the
-header matches the actual content digest of the file as that requires
-downloading the file’s entire contents.</p>
-<h3 id="local-directory-digests"><a class="header" href="#local-directory-digests">Local Directory Digests</a></h3>
-<p>The content digest of a local directory is calculated by recursively walking
-the directory in a consistent order and updating a Blake3 hasher based on each
-entry of the directory.</p>
-<p>A directory’s entry is hashed with:</p>
-<ol>
-<li>The <a href="#hashing-internal-strings">relative path</a> of the directory entry.</li>
-<li>A <code>0</code> byte if the entry is a file or <code>1</code> if it is a directory.</li>
-<li>If the entry is a file, the hasher is updated with the contents of the file.</li>
-</ol>
-<p>Finally, a four byte (little endian) entry count value is written to the hasher
-before it is finalized to produce the 32 byte Blake3 content digest of the
-directory.</p>
-<p><em><strong>Note: it is an error if the directory contains a symbolic link to a
-directory that creates a cycle (i.e. to an ancestor of the directory being
-hashed).</strong></em></p>
-<h3 id="remote-directory-digests"><a class="header" href="#remote-directory-digests">Remote Directory Digests</a></h3>
-<p><code>cloud-copy</code> has the facility to walk a “directory” cloud storage URL; it uses
-the specific cloud storage API to list all objects that start with the
-directory’s prefix.</p>
-<p>The content digest of a remote directory is calculated by using <code>cloud-copy</code> to
-walk the directory in a consistent order and then updating a Blake3 hasher
-based on each entry of the directory.</p>
-<p>A directory’s entry is hashed with:</p>
-<ol>
-<li>The <a href="#hashing-internal-strings">relative path</a> of the entry from the base
-URL.</li>
-<li>The 32 byte Blake3 digest of the <a href="#remote-file-digests">remote file entry</a>.</li>
-</ol>
-<p>Finally, a four byte (little endian) entry count value is written to the hasher
-before it is finalized to produce the 32 byte Blake3 content digest of the
-directory.</p>
-<h1 id="enabling-call-caching"><a class="header" href="#enabling-call-caching">Enabling Call Caching</a></h1>
-<p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
-enabled for every invocation of <code>sprocket run</code>:</p>
-<pre><code class="language-toml">[run.task]
-cache = "off|on|explicit" # defaults to `off`
-</code></pre>
-<p>The supported values for the <code>cache</code> setting are:</p>
-<ul>
-<li><code>off</code> - do not check the call cache or write new cache entries at all.</li>
-<li><code>on</code> - check the call cache and write new cache entries for all tasks except
-those that have a <code>cacheable: false</code> hint.</li>
-<li><code>explicit</code> - check the call cache and write new cache entries <em>only</em> for
-tasks that have a <code>cacheable: true</code> hint.</li>
-</ul>
-<p>Sprocket will default the setting to <code>off</code> as it safer to let users consciously
-opt-in than potentially serve stale results from the cache without the user’s
-knowledge that call caching is occurring.</p>
-<h2 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h2>
-<p>When call caching has been enabled, users may desire to opt-out of call caching
-for individual tasks or a single <code>sprocket run</code> invocation.</p>
-<h3 id="task-opt-out"><a class="header" href="#task-opt-out">Task Opt Out</a></h3>
-<p>An individual task may opt out of call caching through the use of the
-<code>cacheable</code> hint:</p>
-<pre><code class="language-wdl">hints {
-  "cacheable": false
-}
-</code></pre>
-<p>The <code>cacheable</code> hint defaults to <code>false</code> if the <code>task.cache</code> setting is
-<code>explicit</code>; otherwise, the hint defaults to <code>true</code>.</p>
-<p>When <code>cacheable</code> is <code>false</code>, the call cache is not checked prior to task
-execution and the result of the task’s execution is not cached.</p>
-<h3 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h3>
-<p>A single invocation of <code>sprocket run</code> may pass the <code>--no-call-cache</code> option.</p>
-<p>Doing so disables the use of the call cache for that specific run, both in
-terms of looking up results and storing results in the cache.</p>
-<h1 id="failure-modes-for-sprocket"><a class="header" href="#failure-modes-for-sprocket">Failure Modes for Sprocket</a></h1>
-<p>Sprocket currently uses a <em>fail fast</em> failure mode where Sprocket immediately
-attempts to cancel any currently executing tasks and return the error it
-encountered. This is also the behavior of the user invoking <code>Ctrl-C</code> to
-interrupt evaluation.</p>
-<p>Failing this way may cancel long-running tasks that would otherwise have
-succeeded and subsequently prevent caching results for those tasks.</p>
-<p>To better support call caching, Sprocket should be enhanced to support a <em>fail
-slow</em> failure mode (the new default), with users able to configure Sprocket to
-use the previous <em>fail fast</em> behavior when desired.</p>
-<p>With a <em>fail slow</em> failure mode, currently executing tasks are awaited to
-completion, and their successful results are cached before attempting to abort
-the run.</p>
-<p>This also changes how Sprocket handles <code>Ctrl-C</code>. Sprocket should now support
-multiple <code>Ctrl-C</code> invocations depending on its configured failure mode:</p>
-<ol>
-<li>If the configured failure mode is <em>fail slow</em>, the user invokes <code>Ctrl-C</code> and
-Sprocket prints a message informing the user that it is waiting on
-outstanding task executions to complete and to hit <code>Ctrl-C</code> again to cancel
-tasks instead. It then proceeds to wait for executing tasks to complete to
-cache successful results.</li>
-<li>The user invokes <code>Ctrl-C</code> and Sprocket prints a message informing the user
-that it is now canceling the executing tasks and to hit <code>Ctrl-C</code> again to
-immediately terminate Sprocket. It then proceeds to cancel the executing
-tasks and wait for the cancellations to occur.</li>
-<li>The user invokes <code>Ctrl-C</code> and Sprocket immediately errors with a “evaluation
-aborted” error message.</li>
-</ol>
-<p>The failure mode can be configured via <code>sprocket.toml</code>:</p>
-<pre><code class="language-toml">[run]
-fail = "slow|fast"   # Defaults to `slow`
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="drafts"><a class="header" href="#drafts">Drafts</a></h1>
-<p>The following are <em>candidate</em> RFCs that are being rendered for easy review. They are <em>not</em> accepted St. Jude Rust Labs RFCs. For more information please see <a href="https://github.com/stjude-rust-labs/rfcs/pulls">the associated pull request</a>.</p>
-<ul>
-<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/rfcs/sprocket-test">rfcs/sprocket-test</a></li>
-</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="introduction.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
 
+                            <a rel="next prefetch" href="0002-call-caching.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -869,7 +430,13 @@ fail = "slow|fast"   # Defaults to `slow`
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="introduction.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
 
+                    <a rel="next prefetch" href="0002-call-caching.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
@@ -897,11 +464,6 @@ fail = "slow|fast"   # Defaults to `slow`
 
         <!-- Custom JS scripts -->
 
-        <script>
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
 
     </div>
