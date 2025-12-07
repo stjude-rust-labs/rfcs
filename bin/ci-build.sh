@@ -55,14 +55,16 @@ for CURRENT_BRANCH in "${BRANCHES[@]}"; do
   fi
 done
 
+# build `main` first. Otherwise it will clobber other branches
+build main book/ "${DRAFTS_FILE}"
+
 # Loop through rfc branches, build and copy each to output dir
 echo "== Build RFC Branches =="
 for CURRENT_BRANCH in "${BRANCHES[@]}"; do 
-  BRANCH_DIR="${BOOK_DIR}/branches/${CURRENT_BRANCH}"
-  if [[ "${CURRENT_BRANCH}" == "main" ]]; then
-    BRANCH_DIR="${BOOK_DIR}/"
+  if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+    BRANCH_DIR="${BOOK_DIR}/branches/${CURRENT_BRANCH}"
+    build "${CURRENT_BRANCH}" "${BRANCH_DIR}" "${DRAFTS_FILE}"
   fi
-  build "${CURRENT_BRANCH}" "${BRANCH_DIR}" "${DRAFTS_FILE}"
 done
 
 rm ${DRAFTS_FILE}
