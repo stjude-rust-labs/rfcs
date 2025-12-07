@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e8468fbe.js";
+            window.path_to_searchindex_js = "searchindex-14cbcca5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-d406e065.js"></script>
@@ -1274,7 +1274,7 @@ insert into metadata (key, value) values ('schema_version', '1');
 <p>Storing metadata as individual files creates <a href="https://sites.google.com/nyu.edu/nyu-hpc/hpc-systems/hpc-storage/best-practices">inode exhaustion problems common in HPC environments</a>, where each workflow execution would generate multiple small metadata files. HPC filesystems often have strict inode quotas, and large numbers of small files create bottlenecks on metadata servers that degrade performance for all users of the shared filesystem. Queries require walking directory trees and parsing potentially thousands of JSON files, putting additional stress on filesystem metadata operations—the exact workload that HPC storage administrators actively discourage. There’s no standardized query interface and no efficient indexing for common queries like “show all running workflows.” Monitoring tools must implement custom file-walking logic, and race conditions emerge when updating metadata from multiple processes without database-level transaction guarantees.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="drafts"><a class="header" href="#drafts">Drafts</a></h1>
-<p>The following are <em>candidate</em> RFCs that are being rendered for easy review. They are <em>not</em> accepted St. Jude Rust Labs RFCs. For more information please see <a href="https://github.com/stjude-rust-labs/rfcs/pulls">the associated pull request</a>.</p>
+<p>The following are candidate RFCs that are being rendered for easy review. They may still be revised. For more information please see <a href="https://github.com/stjude-rust-labs/rfcs/pulls">the associated pull request</a>.</p>
 <ul>
 <li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0003-hints-registry">0003-hints-registry</a></li>
 <li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0004-task-classes">0004-task-classes</a></li>

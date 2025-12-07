@@ -1,0 +1,1050 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>St. Jude Rust Labs RFCs</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-ac4db0e6.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-ca2295e2.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">St. Jude Rust Labs RFCs</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <img style="margin: 0px" alt="Repository Header Image" src="resources/repo-header.png" />
+<h1 id="requests-for-comments-for-the-st-jude-rust-labs-project"><a class="header" href="#requests-for-comments-for-the-st-jude-rust-labs-project">Requests For Comments for the St. Jude Rust Labs project</a></h1>
+<p>This repo structure and contents are <del>stolen</del> borrowed from the <a href="https://github.com/stjudecloud/rfcs">St. Jude Cloud Team’s <code>rfcs</code> repo</a>.</p>
+<p>These RFCs are meant to act as a public archive of our design intentions and to facilitate conversation both amongst the internal team and any external parties who may wish to help shape the future of the Sprocket project. Notably, these documents are not authoritative in any fashion. They are a snapshot of design goals; some details are important to hash out ahead of time, but practical experience with an implementation or changing understanding of a problem space as learned through use of a feature will likely cause deviations from the initial plans as laid out in these RFCs.</p>
+<p>We will not make an effort to backport changes to these documents if we feel the conversations have run their course.</p>
+<h2 id="install"><a class="header" href="#install">Install</a></h2>
+<pre><code class="language-sh">cargo install mdbook
+</code></pre>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre><code class="language-sh">mdbook build
+python3 -m http.server -d book
+# visit the rendered version in your browser at http://localhost:8000.
+</code></pre>
+<h2 id="-license-and-legal"><a class="header" href="#-license-and-legal">📝 License and Legal</a></h2>
+<p>This project is licensed as either <a href="https://github.com/stjude-rust-labs/rfcs/blob/main/LICENSE-APACHE">Apache 2.0</a> or
+<a href="https://github.com/stjude-rust-labs/rfcs/blob/main/LICENSE-MIT">MIT</a> at your discretion. Additionally, please see <a href="https://github.com/stjude-rust-labs#disclaimer">the
+disclaimer</a> that applies to all
+crates and command line tools made available by St. Jude Rust Labs.</p>
+<p>Copyright © 2023-Present <a href="https://github.com/stjude">St. Jude Children’s Research Hospital</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<ul>
+<li>Feature Name: sprocket-test</li>
+<li>Start Date: 2025-08</li>
+</ul>
+<h1 id="summary"><a class="header" href="#summary">Summary</a></h1>
+<p>The Sprocket test framework enables WDL authors to easily and comprehensively validate their WDL tasks and workflows by defining lightweight unit tests that can run in CI environments. This framework is intended to be intuitive and concise.</p>
+<p>This framework can maximize test depth without adding boilerplate by allowing users to define “test matrices”, where each WDL task or workflow is run with permutations of the provided inputs.</p>
+<h1 id="motivation"><a class="header" href="#motivation">Motivation</a></h1>
+<p>Comprehensive unit testing is a key component of modern software development. Any serious project should endeavor to have a suite of tests that ensure code correctness. These tests should be lightweight enough to run during continuous integration on every set of committed changes.</p>
+<p>n.b.: This RFC is primarily focused on CI unit testing, but enabling larger scale “end-to-end” testing is something that should be kept in mind during this design process. That said, I’m of the opinion these are separate enough use cases that they can be approached with differing APIs, and thus decisions made here should not impact any future E2E testing API too heavily.</p>
+<h1 id="guide-level-explanation"><a class="header" href="#guide-level-explanation">Guide-level explanation</a></h1>
+<p>The Sprocket test framework is primarily specified in TOML, which is expected to be in a file of the same basename as the WDL being tested, but with the <code>.wdl</code> extension replaced by <code>.toml</code>. <code>sprocket test</code> does not require any special syntax or modification of actual WDL files, and any WDL workspace can begin writing tests without needing to refactor their WDL documents. Following this pattern frees the TOML from having to contain any information about <em>where</em> to find the entrypoint of each test. For example, all the test entrypoints (tasks or workflows) in <code>data_structures/flag_filter.toml</code> are expected to be defined in the WDL located at <code>data_structures/flag_filter.wdl</code>.</p>
+<p>Any task or workflow defined in <code>data_structures/flag_filter.wdl</code> can have any number of tests associated with it in <code>data_structures/flag_filter.toml</code>. To write a set of tests for a task <code>validate_string_is_12bit_int</code> in <code>flag_filter.wdl</code>, the user will define an array of tables in their TOML with the header <code>[[validate_string_is_12bit_int]]</code>. Multiple tests can be written for the <code>validate_string_is_12bit_int</code> task by repeating the <code>[[validate_string_is_12bit_int]]</code> header. The <code>validate_flag_filter</code> workflow can be tested the same way, by defining a TOML array of tables headered with <code>[[validate_flag_filter]]</code>. These TOML headers must match an entrypoint in the corresponding WDL file. Under each of these headers will be a TOML table with all the required information for a single test.</p>
+<p>An example TOML for specifying a suite of tests for <a href="https://github.com/stjudecloud/workflows/blob/main/data_structures/flag_filter.wdl">the <code>flag_filter.wdl</code> document in the <code>workflows</code> repo</a> would look like:</p>
+<pre><code class="language-toml">[[validate_string_is_12bit_int]]
+name = "decimal_passes" # each test must have a unique identifier
+[validate_string_is_12bit_int.inputs]
+number = "5"
+# without any assertions explicitly configured, Sprocket will consider the task executing with a 0 exit code to be a "pass" and any non-zero exit code as a "fail"
+
+[[validate_string_is_12bit_int]]
+name = "hexadecimal_passes"
+[validate_string_is_12bit_int.inputs]
+number = "0x900"
+[validate_string_is_12bit_int.assertions]
+stdout.contains = "Input number (0x900) is valid" # builtin assertion for checking STDOUT logs
+
+[[validate_string_is_12bit_int]]
+name = "too_big_hexadecimal_fails"
+[validate_string_is_12bit_int.inputs]
+number = "0x1000"
+[validate_string_is_12bit_int.assertions]
+exit_code = 42 # the task should fail for this test
+stderr.contains = "Input number (0x1000) is invalid" # similar to the stdout assertion
+
+[[validate_string_is_12bit_int]]
+name = "too_big_decimal_fails"
+[validate_string_is_12bit_int.inputs]
+number = "4096"
+[validate_string_is_12bit_int.assertions]
+exit_code = 42
+stderr.contains = [
+    "Input number (4096) interpreted as decimal",
+    "But number must be less than 4096!",
+] # `contains` assertion can also be an array of strings
+
+[[validate_flag_filter]] # a workflow test
+name = "valid_FlagFilter_passes"
+[validate_flag_filter.inputs.flags]
+include_if_all = "3" # decimal
+exclude_if_any = "0xF04" # hexadecimal
+include_if_any = "03" # octal
+exclude_if_all = "4095" # decimal
+
+[[validate_flag_filter]]
+name = "invalid_FlagFilter_fails"
+[validate_flag_filter.inputs.flags]
+include_if_all = "" # empty string
+exclude_if_any = "this is not a number"
+include_if_any = "000000000011" # binary interpreted as octal. Too many digits for octal
+exclude_if_all = "4095" # this is fine
+[validate_flag_filter.assertions]
+should_fail = true
+</code></pre>
+<p>Hopefully, everything in the above TOML is easily enough grokked that I won’t spend time going through the specifics in much detail. The <code>flag_filter.wdl</code> WDL document contains a task and a workflow, both with minimal inputs and no outputs, making the tests fairly straightforward. One of Sprocket’s guiding principles is to only introduce complexity where it’s warranted, and I hope that this example demonstrates a case where complexity is <em>not</em> warranted. Next, we will be discussing features intended for allowing test cases that are more complex, but the end API exposed to users (the focus of this document) still aims to maintain simplicity and intuitiveness.</p>
+<h2 id="test-data"><a class="header" href="#test-data">Test Data</a></h2>
+<p>Most WDL tasks and workflows have <code>File</code> type inputs and outputs, so there should be an easy way to incorporate test files into the framework. This can be accomplished with a <code>tests/fixtures/</code> directory in the root of the workspace which can be referred to from any TOML test. If the string <code>$FIXTURES</code> is found within a TOML string value within the <code>inputs</code> table, the correct path to the <code>fixtures</code> directory will be dynamically inserted at test run time. This avoids having to track relative paths from TOML that may be arbitrarily nested in relation to test data. For example, let’s assume there are <code>test.bam</code>, <code>test.bam.bai</code>, and <code>reference.fa.gz</code> files located within the <code>tests/fixtures/</code> directory; the following TOML <code>inputs</code> table could be used regardless of where that actual <code>.toml</code> file resides within the WDL workspace:</p>
+<pre><code class="language-toml">bam = "$FIXTURES/test.bam"
+bam_index = "$FIXTURES/test.bam.bai"
+reference_fasta = "$FIXTURES/reference.fa.gz"
+</code></pre>
+<h2 id="builtin-assertions"><a class="header" href="#builtin-assertions">Builtin Assertions</a></h2>
+<p>Sprocket will support a variety of common test conditions. In this document so far, we’ve seen a few of the most straightforward conditions already in the <code>assertions</code> table of the earlier TOML example (<code>exit_code</code>, <code>stdout.contains</code>, <code>stderr.contains</code> and <code>should_fail</code>). For the initial release of <code>sprocket test</code>, these builtin assertions will probably remain as a rather small and tailored set, but the implementation should make extending this set in subsequent releases simple and non-breaking. Adding new builtin assertions could be a recommended starting point for new contributors, similar to how new lint rules are fairly straightforward to add.</p>
+<p>Some assertions that might exist at initial release:</p>
+<ul>
+<li><code>exit_code = &lt;int&gt;</code> (should an array of ints be supported?)</li>
+<li><code>should_fail = &lt;bool&gt;</code>: only available for workflow tests! Task tests should instead specify an <code>exit_code</code></li>
+<li><code>stdout</code>: will be a TOML table with a sub-tests related to checking a tasks STDOUT log (<em>not available</em> for workflow tests)
+<ul>
+<li><code>contains = &lt;string | array of strings&gt;</code>: strings are REs</li>
+<li><code>not_contains = &lt;string | array of strings&gt;</code>: strings are REs</li>
+</ul>
+</li>
+<li><code>stderr</code>: functionally equivalent to the <code>stdout</code> tests, assertions but runs on the STDERR log instead</li>
+<li><code>outputs</code>: a TOML table populated with task or workflow output identifiers. The specific assertions available will depend on the WDL type of the specified output
+<ul>
+<li><code>&lt;WDL Boolean&gt; = &lt;true|false&gt;</code></li>
+<li><code>&lt;WDL Int&gt; = &lt;TOML int&gt;</code></li>
+<li><code>&lt;WDL Float&gt; = &lt;TOML float&gt;</code></li>
+<li><code>&lt;WDL String&gt;</code>
+<ul>
+<li><code>contains = &lt;string | array of strings&gt;</code>: strings are REs</li>
+<li><code>not_contains = &lt;string | array of strings&gt;</code>: strings are REs</li>
+<li><code>equals = &lt;string&gt;</code> an exact match RE</li>
+</ul>
+</li>
+<li><code>&lt;WDL File&gt;</code>
+<ul>
+<li><code>name = &lt;string&gt;</code>: glob pattern that should match</li>
+<li><code>md5 = &lt;string&gt;</code>: md5sum that the file should have</li>
+<li><code>blake3 = &lt;string&gt;</code>: blake3 hash that the file should have</li>
+<li><code>sha256 = &lt;string&gt;</code>: sha256 hash that the file should have</li>
+<li><code>contains = &lt;string | array of strings&gt;</code>: REs to expect within the file contents</li>
+<li><code>not_contains = &lt;string | array of strings&gt;</code>: inverse of <code>contains</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The above is probably (about) sufficient for an initial release. Thoughts about future assertions that could exist will be discussed in the <a href="#future-possibilities">“Future possibilities”</a> section.</p>
+<h2 id="custom-assertions"><a class="header" href="#custom-assertions">Custom Assertions</a></h2>
+<p>While the builtin assertions should try and address many common use cases, users need a way to test for things outside the scope of the builtins (especially at launch, when the builtins will be minimal). There needs to be a way for users to execute arbitrary code on the outputs of a task or workflow for validation. This will be exposed via the <code>assertions.custom</code> test, which will accept a name or array of names of user supplied executables (most commonly shell or Python scripts) which are expected to be found in a <code>tests/custom/</code> directory. These executables will be invoked with a positional argument which is a path to the task or workflow’s <code>outputs.json</code>. Users will be responsible for parsing that JSON and performing any validation they desire. So long as the invoked executable exits with a code of zero, the test will be considered as passed.</p>
+<p>For further discussion of why this design was chosen, see the <a href="#rationale-and-alternatives">rationale section</a>. The path to an <code>outputs.json</code> is required for this to be usable, but we could consider other paths or information which may be valuable in a test context which we could expose via other arguments or environment variables.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<p><code>tools/picard.toml</code></p>
+<pre><code class="language-toml">[[merge_sam_files]]
+name = "Merge works"
+[merge_sam_files.inputs]
+bams = [
+    "$FIXTURES/test1.bam",
+    "$FIXTURES/test2.bam",
+]
+prefix = "test.merged"
+[merge_sam_files.assertions]
+custom = "quickcheck.sh"
+</code></pre>
+<p>Sprocket will look for an executable file named <code>quickcheck.sh</code> in the <code>tests/custom/</code> directory. That file could contain any arbitrary code, such as:</p>
+<pre><code class="language-bash">#!/bin/bash
+
+set -euo pipefail
+
+out_json=$1
+
+out_bam=$(jq -r .bam "$out_json")
+
+samtools quickcheck "$out_bam"
+</code></pre>
+<h2 id="test-matrices"><a class="header" href="#test-matrices">Test Matrices</a></h2>
+<p>Often, it makes sense to validate that a variety of inputs result in the same test result. While the TOML definitions shared so far are relatively concise, repeating the same test conditions for many different inputs can get repetitive and the act of writing redundant boilerplate can discourage testing best practices. Sprocket offers a “shortcut” for avoiding this boilerplate, by defining test matrices. These test matrices can be a way to reach comprehensive test depth with minimal boilerplate. A test matrix is created by defining a <code>matrix</code> TOML array of tables for a set of test inputs. Each permutation of the “input vectors” will be run, which can be leveraged to test many conditions with a single test definition. Sprocket will evaluate the Cartesian product of the tables in the <code>matrix</code> array and run each combination of input values.</p>
+<p>Below, you will find an example for a <code>bam_to_fastq</code> task defines <code>3*2*2*2*2*2*1 = 96</code> different permutations of the task inputs which should each be executed by Sprocket using only ~30 lines of TOML.</p>
+<pre><code class="language-toml">[[bam_to_fastq]]
+name = "kitchen_sink"
+[[bam_to_fastq.matrix]]
+bam = [
+    "$FIXTURES/test1.bam",
+    "$FIXTURES/test2.bam",
+    "$FIXTURES/test3.bam",
+]
+bam_index = [
+    "$FIXTURES/test1.bam.bai",
+    "$FIXTURES/test2.bam.bai",
+    "$FIXTURES/test3.bam.bai",
+]
+[[bam_to_fastq.matrix]]
+bitwise_filter = [
+    { include_if_all = "0x0", exclude_if_any = "0x900", include_if_any = "0x0", exclude_if_all = "0x0" },
+    { include_if_all = "00", exclude_if_any = "0x904", include_if_any = "3", exclude_if_all = "0" },
+]
+[[bam_to_fastq.matrix]]
+paired_end = [true, false]
+[[bam_to_fastq.matrix]]
+retain_collated_bam = [true, false]
+[[bam_to_fastq.matrix]]
+append_read_number = [true, false]
+[[bam_to_fastq.matrix]]
+output_singletons = [true, false]
+[[bam_to_fastq.matrix]]
+prefix = ["kitchen_sink_test"] # the `prefix` input will be shared by _all_ permutations of the test matrix
+# this test is to ensure all the options (and combinations thereof) are valid
+# so no assertions beyond a `0` exit code are needed here
+</code></pre>
+<p>This is perhaps an extreme test case, but it was contrived as a stress test of sorts for the matrix design. This specific case may be too intense to run in a CI environment, but should demonstrate the power of test matrices in aiding comprehensive testing without undue boilerplate.</p>
+<p>(Notably, the actual <code>bam_to_fastq</code> task in <code>samtools.wdl</code> (<a href="https://github.com/stjudecloud/workflows/blob/main/tools/samtools.wdl#L763">here</a>) does not have a <code>bam_index</code> input, but that was added to this example for illustrative purposes)</p>
+<p>REVIEWERS: I can write more examples of “real” TOML test files, as presumably we will be switching the <code>workflows</code> repo to this framework, in which case any tests written as examples here can hopefully just be re-used with minimal modification for the production tests we want. So don’t be afraid to ask for more examples! I just didn’t want to overload this document ;D</p>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>All of the expected paths, <code>tests/fixtures/</code> and <code>tests/custom/</code>, will be configurable. <code>tests/</code> conflicts with <code>pytest-workflow</code>, so users may want to rename the default directories to something like <code>sprocket-tests/</code>.</p>
+<h2 id="test-filtering"><a class="header" href="#test-filtering">Test Filtering</a></h2>
+<p>Users will be able to annotate each test with arbitrary tags which will allow them to run subsets of the entire test suite. They will also be able to run the tests in a specific file, as opposed to the default <code>sprocket test</code> behavior which will be to recurse the working directory and run all found tests. This will facilitate a variety of applications, most notably restricting the run to only what the developer knows has changed and parallelizing CI runs.</p>
+<p>We may also want to give some tags special meaning: it is common to annotate “slow” tests and to exclude them from runs by default and we may want to make reduce friction in configuring that case.</p>
+<h1 id="reference-level-explanation"><a class="header" href="#reference-level-explanation">Reference-level explanation</a></h1>
+<p>REVIEWERS: is this section needed?</p>
+<hr>
+<p>This is the technical portion of the RFC. Explain the design in sufficient detail that:</p>
+<ul>
+<li>Its interaction with other features is clear.</li>
+<li>It is reasonably clear how the feature would be implemented.</li>
+<li>Corner cases are dissected by example.</li>
+</ul>
+<p>The section should return to the examples given in the previous section, and explain more fully how the detailed proposal makes those examples work.</p>
+<h1 id="drawbacks"><a class="header" href="#drawbacks">Drawbacks</a></h1>
+<p>Q: What are reasons we should we <em>not</em> do this?</p>
+<p>A: <em>none!</em> This is a great idea!</p>
+<p>To be serious, <code>pytest-workflow</code> seems to be the best test framework for WDL that I’ve been able to find as a WDL author, and as a user of that framework, I think WDL could use something more tailored. I will elaborate further in <a href="#prior-art">Prior Art</a>.</p>
+<h1 id="rationale-and-alternatives"><a class="header" href="#rationale-and-alternatives">Rationale and alternatives</a></h1>
+<p>REVIEWERS: I’ve thought through quite a wide variety of implementations that have not made it into writing, and I’m not sure how valuable my musings on alternatives I <em>didn’t like</em> are. I can expand on this section if it would be informative.</p>
+<h2 id="custom-assertions-rationale"><a class="header" href="#custom-assertions-rationale">Custom Assertions Rationale</a></h2>
+<p>The custom assertion design is meant to maximize flexibility without adding implementation complexity. The implementation proposed couldn’t be much simpler: simply invoke an arbitrary executable with a single positional argument, expect an exit code of zero and anything else is a failed test.</p>
+<p>This child process will inherit the parent process’s environment, and it will ultimately be up to test authors for ensuring their test environment and dependencies are correct. This may lead to debugging difficulties, and Sprocket will be able to offer very little help with what’s going on (aside from forwarding the STDOUT and STDERR streams).</p>
+<p>This is a large drawback of the design, but I believe the flexibility offered here is worth those pains. Users can drop shell scripts, Python scripts, bespoke Rust binaries, or anything else using any framework they want, so long as it has a <code>+x</code> bit and can process a positional argument.</p>
+<h1 id="prior-art"><a class="header" href="#prior-art">Prior art</a></h1>
+<p>This document has been largely informed by my experience as a WDL author and maintainer of the <a href="https://github.com/stjudecloud/workflows">stjudecloud/workflows</a> repository. The CI of that repo uses <code>pytest-workflow</code>.</p>
+<h2 id="pytest-workflow"><a class="header" href="#pytest-workflow"><code>pytest-workflow</code></a></h2>
+<p><a href="https://github.com/lumc/pytest-workflow/"><code>pytest-workflow</code></a> has been a great stop-gap tool for us. It is a generalized test framework not specific to WDL, which is ultimately what makes it unwieldly for our use cases. The generality of <code>pytest-workflow</code> necessitates <em>a lot</em> of boilerplate in our tests, and was proving a disincentive to writing comprehensive tests. Tests were a pain to write, as a lot of redundant text had to be written for hooking up inputs and outputs in a way that both <code>pytest-workflow</code> and a WDL engine could work with.</p>
+<p>The WDL community should have a better solution than a generic test framework.</p>
+<p>That said, if you are familiar with pytest-workflow, you will likely see some similarities between it and my proposal. I’ve leaned on the existing designs used in pytest-workflow, and made them more specific and ergonomic for WDL. There are 3 primary ways this RFC distinguishes itself from pytest-workflow:</p>
+<ol>
+<li>Understanding IO for WDL, eliminating boilerplate</li>
+<li>Matrix testing to increase test depth</li>
+<li>Advanced builtin assertions</li>
+</ol>
+<p>The third point is more aspirational than concrete for the initial release. See <a href="#future-possibilities">future-possibilities</a> for elaboration.</p>
+<p>REVIEWERS: I can elaborate further if asked</p>
+<h2 id="wdl-ci"><a class="header" href="#wdl-ci"><a href="https://github.com/DNAstack/wdl-ci">wdl-ci</a></a></h2>
+<p>I found this tool while looking for existing frameworks when starting this document; which is to say it’s new to me and I have not tried running it, but it has some interesting capabilities.</p>
+<p>This is <em>not</em> a unit testing framework, and looks geared towards system testing or end-to-end testing, or whatever term you want to use for ensuring <em>consistency and reproducibility</em> while developing a workflow. Definitely something worth revisiting when we circle back to that use case, but at the moment this is just designed for a different use than my proposal.</p>
+<h2 id="pytest-wdl"><a class="header" href="#pytest-wdl"><a href="https://github.com/EliLillyCo/pytest-wdl">pytest-wdl</a></a></h2>
+<p>Last update was 4 years ago, which we on the <code>workflows</code> repo considered a deal breaker when we were initially shopping for CI testing. It seems very similar to pytest-workflow, at least on the surface, (of course they are both plugins to the popular pytest framework) but admittedly I have not dug very deep into this project.</p>
+<h2 id="cz-id-repo"><a class="header" href="#cz-id-repo"><a href="https://github.com/chanzuckerberg/czid-workflows/tree/main?tab=readme-ov-file#cicd">CZ ID repo</a></a></h2>
+<p>This is just a WDL repo, not a full test framework, but they do have a bespoke CI/CD set up that I reviewed. Uses miniwdl under the hood and seems worth mentioning, but not a generalizable approach.</p>
+<h1 id="future-possibilities"><a class="header" href="#future-possibilities">Future possibilities</a></h1>
+<h2 id="builtin-tests"><a class="header" href="#builtin-tests">Builtin tests</a></h2>
+<p>I think there’s a lot of room for growth in the builtin test conditions. This document just has what I think are about appropriate for an initial release (i.e. are relatively easy to implement), but that shouldn’t be the end of the builtin tests. I can imagine us writing bioinformatics specific tests using the <code>noodles</code> library for testing things like “is this output file a valid BAM?”, “is this BAM coordinate sorted?”, “is the output BAI file correctly matched to the output BAM?”, and many many more such tests.</p>
+<h2 id="adoption-by-the-wdl-specification"><a class="header" href="#adoption-by-the-wdl-specification">Adoption by the WDL specification?</a></h2>
+<p>TOML based test definitions could be lifted over to WDL <code>meta</code> sections if this approach to testing proves valuable. This RFC is concerned with an <em>external</em> testing framework, but this possibility could be explored further down the road.</p>
+<h2 id="validating-other-engines"><a class="header" href="#validating-other-engines">Validating other engines</a></h2>
+<p>First off, I don’t think this is something we want to pursue within Sprocket, but I didn’t want to omit the possibility from this document.</p>
+<p>Supporting multiple engines/runners/environments/etc. is valuable and something many WDL authors are looking for. In the <code>workflows</code> repo, we currently validate our tasks with both <code>sprocket run</code> and <code>miniwdl run</code>; ideally we’d like to expand that to include others as well, but it is tricky to get running smoothly.</p>
+<p>To be blunt, I think this is out of scope for what Sprocket should be focusing on. An existing “generalized” framework (like pytest-workflow) would be better suited for this kind of validation.</p>
+<h2 id="individual-test-files"><a class="header" href="#individual-test-files">Individual test files</a></h2>
+<p>An annoyance for me while working on the <code>workflows</code> CI (with pytest-workflow) is that I often have to write individual input JSON files that are then pointed to in the test definition with a relative path. This meant opening two files to figure out what a test was doing; and the pathing was a pain due to our repo structure and the differing path resolution of Sprocket and miniwdl. This proposal aimed to keep all the relevant test information colocated in a single TOML table, but that does create a restriction where the inputs can’t be trivially used in a different context.</p>
+<p>We could explore an alternative syntax that allows test inputs to be defined separately from the test.</p>
+<h2 id="integration-of-custom-assertions"><a class="header" href="#integration-of-custom-assertions">Integration of custom assertions</a></h2>
+<p>The current proposal for custom assertions is pretty bare bones. This allows for a great deal of flexibility at very little implementation complexity, but we may want to offer tighter integration in the future. Maybe instead of invoking plain executables, we could integrate Python in some way? Calling out Python explicitly, as it is a popular (particularly among bioinformaticians) and flexible language. However environment management with Python dependencies can be a bit of a nightmare, and I’m not really sure of an ergonomic way we could integrate that.</p>
+<h2 id="e2e-testing"><a class="header" href="#e2e-testing">E2E testing</a></h2>
+<p>As stated in the “motivation” section, this proposal is ignoring end-to-end (or E2E) tests and is really just focused on enabling unit testing for CI purposes. Perhaps some of this could be re-used for an E2E API, but I have largely ignored that aspect. (Also I have lots of thoughts about what that might look like, but for brevity will not elaborate further.)</p>
+<h2 id="caching"><a class="header" href="#caching">Caching</a></h2>
+<p>At the time of writing, Sprocket does not yet have a call caching feature. But once that feature lands, it will prove useful for this framework as a way to reduce runtime on subsequent test runs.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<ul>
+<li>Feature Name: call-caching</li>
+<li>Start Date: 2025-10</li>
+</ul>
+<h1 id="summary-1"><a class="header" href="#summary-1">Summary</a></h1>
+<p>The Sprocket call caching feature enables <code>sprocket run</code> to skip executing
+tasks that have been previously executed successfully and instead reuse the
+last known outputs of the task.</p>
+<h1 id="motivation-1"><a class="header" href="#motivation-1">Motivation</a></h1>
+<p>Sprocket currently cannot resume a failed or canceled workflow, meaning that it
+must re-execute every task that completed successfully on a prior run of that
+workflow.</p>
+<p>As tasks can be very expensive to execute, in terms of both compute resources
+and time, this can be a major barrier to using Sprocket in the bioinformatics
+space.</p>
+<p>The introduction of caching task outputs so that they can be reused in lieu of
+re-executing a task will allow Sprocket to quickly resume a workflow run and
+reduce redundant execution.</p>
+<h1 id="cache-key"><a class="header" href="#cache-key">Cache Key</a></h1>
+<p>The cache key will a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> digest derived from hashing the following:</p>
+<ol>
+<li>The WDL document URI <a href="#hashing-internal-strings">string</a>.</li>
+<li>The task name as a <a href="#hashing-internal-strings">string</a>.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">name</a>,
+<a href="#hashing-wdl-values">value</a>) pairs that make up the task’s inputs, ordered
+lexicographically by name.</li>
+</ol>
+<p>This implies that the task’s cache key is sensitive to the <em><strong>WDL document being
+moved</strong></em>, <em><strong>the task being renamed</strong></em>, or the <em><strong>input values to the task
+changing</strong></em>; any of the above will cause a cache miss and Sprocket will not
+distinguish the cause for a cache miss when the key changes.</p>
+<p>The result is a 32 byte Blake3 digest that can be represented as a
+lowercase hexadecimal string, (e.g.
+<code>295192ea1ec8566d563b1a7587e5f0198580cdbd043842f5090a4c197c20c67a</code>) for the
+purpose of cache entry file names.</p>
+<h1 id="call-cache-directory"><a class="header" href="#call-cache-directory">Call Cache Directory</a></h1>
+<p>Once a cache key is calculated, it can be used to locate an entry within the
+call cache directory.</p>
+<p>The call cache directory may be configured via <code>sprocket.toml</code>:</p>
+<pre><code class="language-toml">[run.task]
+cache_dir = "&lt;path_to_cache&gt;"
+</code></pre>
+<p>The default call cache location will be the user’s cache directory joined with
+<code>./sprocket/calls</code>.</p>
+<p>The call cache directory will contain an empty <code>.lock</code> file that will be used
+to acquire shared and exclusive file locks on the <em>entire</em> call cache; the lock
+file serves to coordinate access between <code>sprocket run</code> and a future <code>sprocket clean</code>
+command.</p>
+<p>During the execution of <code>sprocket run</code>, only a single <em>shared lock</em> will be
+acquired on the <code>.lock</code> file and kept for the entirety of the run.</p>
+<p>The call cache will have no eviction policy, meaning it will grow unbounded. A
+future <code>sprocket clean</code> command might give statistics of current cache sizes
+with the option to clean them, if desired. The <code>sprocket clean</code> command would
+take an <em>exclusive lock</em> on the <code>.lock</code> file to block any <code>sprocket run</code>
+command from executing while it is operating.</p>
+<p>Each entry within the call cache will be a file with the same name of the
+task’s cache key.</p>
+<p>During a lookup of an entry in the cache, a <em>shared lock</em> will be acquired on
+the individual entry file. During the updating of an entry in the cache, an
+<em>exclusive lock</em> will be acquired on the individual entry file.</p>
+<p>The entry file will contain a JSON object with the following information:</p>
+<pre><code class="language-javascript">{
+  "version": 1,                          // A monotonic version for the entry format.
+  "command": "&lt;string-digest&gt;",          // The digest of the task's evaluated command.
+  "container": "&lt;string&gt;",               // The container used by the task.
+  "shell": "&lt;string&gt;",                   // The shell used by the task.
+  "requirements": {
+    "&lt;key&gt;": "&lt;value-digest&gt;",           // The requirement key and value digest
+    // ...
+  },
+  "hints": {
+    "&lt;key&gt;": "&lt;value-digest&gt;",           // The hint key and value digest
+    // ...
+  },
+  "inputs": {
+    "&lt;path-or-url&gt;": "&lt;content-digest&gt;", // The previous backend input and its content digest
+    // ...
+  },
+  "exit": 0,                             // The last exit code of the task.
+  "stdout": {
+    "location": "&lt;path-or-url&gt;",         // The location of the last stdout output.
+    "digest": "&lt;content-digest&gt;".        // The content digest of the last stdout output.
+  },
+  "stderr": {
+    "location": "&lt;path-or-url&gt;",         // The location of the last stderr output.
+    "digest": "&lt;content-digest&gt;"         // The content digest of the last stderr output.
+  },
+  "work": {
+    "location": "&lt;path-or-url&gt;",         // The location of the last working directory.
+    "digest": "&lt;content-digest&gt;"         // The content digest of the last working directory.
+  }
+}
+</code></pre>
+<p><em>Note: as a cache entry may contain absolute paths pointing at files in the
+<code>runs</code> directory, deleting or moving a <code>runs</code> directory may invalidate entries
+in the call cache.</em></p>
+<p>See the <a href="#cache-entry-digests">section on cache entry digests</a> for information
+on how the digests in the cache entry file are calculated.</p>
+<h1 id="call-cache-hit"><a class="header" href="#call-cache-hit">Call Cache Hit</a></h1>
+<p>Checking for a cache hit acquires a <em>shared lock</em> on the call cache entry file.</p>
+<p>A cache entry lookup only occurs for the <em>first</em> execution of the task; the
+call cache is skipped for subsequent retries of the task.</p>
+<p>A call cache hit will occur if all of the following criteria are met:</p>
+<ul>
+<li>A file with the same name as the task’s cache key is present in the call cache
+directory and the file can be deserialized to the expected JSON object.</li>
+<li>The cache entry’s <code>version</code> field matches the cache version expected by
+Sprocket.</li>
+<li>The digest of the currently executing task’s evaluated command matches the
+cache entry’s <code>command</code> field.</li>
+<li>The container used by the task matches the cache entry’s <code>container</code> field.</li>
+<li>The shell used by the task matches the cache entry’s <code>shell</code> field.</li>
+<li>The digests of the task’s requirements exactly match those in the cache
+entry’s <code>requirements</code> field.</li>
+<li>The digests of the task’s hints exactly match those in the cache entry’s
+<code>hints</code> field.</li>
+<li>The digests of the task’s backend inputs exactly match those in the cache
+entry’s <code>inputs</code> field.</li>
+<li>The digest of the cache entry’s <code>stdout</code> field matches the current digest of
+its location.</li>
+<li>The digest of the cache entry’s <code>stdout</code> field matches the current digest of
+its location.</li>
+<li>The digest of the cache entry’s <code>work</code> field matches the current digest of
+its location.</li>
+</ul>
+<p>If any of the criteria above are not met, the failing criteria is logged (e.g.
+“entry not present in the cache”, “command was modified”, “input was modified”,
+“stdout file was modified”, etc.) and it is treated as a cache miss.</p>
+<p>Upon a call cache hit, a <code>TaskExecutionResult</code> will be created from the
+<code>stdout</code>, <code>stderr</code>, and <code>work</code> fields of the cache entry and task execution
+will be skipped.</p>
+<h1 id="call-cache-miss"><a class="header" href="#call-cache-miss">Call Cache Miss</a></h1>
+<p>Upon a call cache miss, the task will be executed by passing the request to the
+task execution backend.</p>
+<p>After the task successfully executes <em>on its first attempt only</em>, the following
+occurs:</p>
+<ul>
+<li>Content digests will be calculated for <code>stdout</code>, <code>stderr</code>, and <code>work</code> of the
+execution result returned by the execution backend.</li>
+<li>An <em>exclusive lock</em> is acquired on the cache entry file.</li>
+<li>The new cache entry is JSON serialized into the cache entry file.</li>
+</ul>
+<p>If a task fails to execute on its first attempt, the task’s cache entry will
+not be updated regardless of a successful retry.</p>
+<p><em><strong>Note: a non-zero exit code of a task’s execution is not inherently a failure
+as the WDL task may specify permissible non-zero exit codes.</strong></em></p>
+<h1 id="cache-entry-digests"><a class="header" href="#cache-entry-digests">Cache Entry Digests</a></h1>
+<p>A cache entry may contain three different types of digests as lowercase
+hexadecimal strings:</p>
+<ul>
+<li>A digest produced by <a href="#hashing-internal-strings">hashing an internal string</a>.</li>
+<li>A digest produced by <a href="#hashing-wdl-values">hashing a WDL value</a>.</li>
+<li>A <a href="#content-digests">content digest</a> of a backend input.</li>
+</ul>
+<p><a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> will be used as the hash algorithm for producing the digests.</p>
+<h2 id="hashing-internal-strings"><a class="header" href="#hashing-internal-strings">Hashing Internal Strings</a></h2>
+<p>Hashing an internal string (i.e. a string used internally by the engine) will
+update the hasher with:</p>
+<ol>
+<li>A four byte length value in little endian order.</li>
+<li>The UTF-8 bytes representing the string.</li>
+</ol>
+<h2 id="hashing-wdl-values"><a class="header" href="#hashing-wdl-values">Hashing WDL Values</a></h2>
+<p>For hashing the values of the <code>requirements</code> and <code>hints</code> section, a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a>
+hasher will be updated as described in this section.</p>
+<p>Compound values will recursively hash their contained values.</p>
+<h3 id="hashing-a-none-value"><a class="header" href="#hashing-a-none-value">Hashing a <code>None</code> value</a></h3>
+<p>A <code>None</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>0</code> to indicate a <code>None</code> variant.</li>
+</ol>
+<h3 id="hashing-a-boolean-value"><a class="header" href="#hashing-a-boolean-value">Hashing a <code>Boolean</code> value</a></h3>
+<p>A <code>Boolean</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>1</code> to indicate a <code>Boolean</code> variant.</li>
+<li>A byte with a value of <code>1</code> if the value is <code>true</code> or <code>0</code> if the value is
+<code>false</code>.</li>
+</ol>
+<h3 id="hashing-an-int-value"><a class="header" href="#hashing-an-int-value">Hashing an <code>Int</code> value</a></h3>
+<p>An <code>Int</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a a value of <code>2</code> to indicate an <code>Int</code> variant.</li>
+<li>An 8 byte value representing the signed integer in little endian order.</li>
+</ol>
+<h3 id="hashing-a-float-value"><a class="header" href="#hashing-a-float-value">Hashing a <code>Float</code> value</a></h3>
+<p>A <code>Float</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>3</code> to indicate a <code>Float</code> variant.</li>
+<li>An 8 byte value representing the float in little endian order.</li>
+</ol>
+<h3 id="hashing-a-string-value"><a class="header" href="#hashing-a-string-value">Hashing a <code>String</code> value</a></h3>
+<p>A <code>String</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>4</code> to indicate a <code>String</code> variant.</li>
+<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>String</code>.</li>
+</ol>
+<h3 id="hashing-a-file-value"><a class="header" href="#hashing-a-file-value">Hashing a <code>File</code> value</a></h3>
+<p>A <code>File</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>5</code> to indicate a <code>File</code> variant.</li>
+<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>File</code>.</li>
+</ol>
+<p>For the purpose of hashing a <code>File</code> value, the contents of the file specified
+by the value are <em>not</em> considered.</p>
+<p>If the <code>File</code> is a backend input, the contents will be taken into consideration
+when backend input content digests are produced.</p>
+<h3 id="hashing-a-directory-value"><a class="header" href="#hashing-a-directory-value">Hashing a <code>Directory</code> value</a></h3>
+<p>A <code>Directory</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>6</code> to indicate a <code>Directory</code> variant.</li>
+<li>The <a href="#hashing-internal-strings">internal string</a> value of the <code>Directory</code>.</li>
+</ol>
+<p>For the purpose of hashing a <code>Directory</code> value, the contents of the directory
+specified by the value are <em>not</em> considered.</p>
+<p>If the <code>Directory</code> is a backend input, the contents will be taken into
+consideration when backend input content digests are produced.</p>
+<h3 id="hashing-a-pair-value"><a class="header" href="#hashing-a-pair-value">Hashing a <code>Pair</code> value</a></h3>
+<p>A <code>Pair</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>7</code> to indicate a <code>Pair</code> variant.</li>
+<li>The recursive hash of the <code>left</code> <a href="#hashing-wdl-values">value</a>.</li>
+<li>The recursive hash of the <code>right</code> <a href="#hashing-wdl-values">value</a>.</li>
+</ol>
+<h3 id="hashing-an-array-value"><a class="header" href="#hashing-an-array-value">Hashing an <code>Array</code> value</a></h3>
+<p>An <code>Array</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>8</code> to indicate an <code>Array</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of <a href="#hashing-wdl-values">elements</a>
+contained in the array, in insertion order.</li>
+</ol>
+<h4 id="hashing-a-map-value"><a class="header" href="#hashing-a-map-value">Hashing a <code>Map</code> value</a></h4>
+<p>A <code>Map</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>9</code> to indicate a <code>Map</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-wdl-values">key</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in insertion order.</li>
+</ol>
+<h4 id="hashing-an-object-value"><a class="header" href="#hashing-an-object-value">Hashing an <code>Object</code> value</a></h4>
+<p>An <code>Object</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>10</code> to indicate an <code>Object</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in insertion order.</li>
+</ol>
+<h3 id="hashing-a-struct-value"><a class="header" href="#hashing-a-struct-value">Hashing a <code>Struct</code> value</a></h3>
+<p>A <code>Struct</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>11</code> to indicate a <code>Struct</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">field name</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in field declaration order.</li>
+</ol>
+<h3 id="hashing-a-hints-value-wdl-12"><a class="header" href="#hashing-a-hints-value-wdl-12">Hashing a <code>hints</code> value (WDL 1.2+)</a></h3>
+<p>A <code>hints</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>12</code> to indicate a <code>hints</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in insertion order.</li>
+</ol>
+<h3 id="hashing-an-input-value-wdl-12"><a class="header" href="#hashing-an-input-value-wdl-12">Hashing an <code>input</code> value (WDL 1.2+)</a></h3>
+<p>An <code>input</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>13</code> to indicate an <code>input</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in insertion order.</li>
+</ol>
+<h3 id="hashing-an-output-value-wdl-12"><a class="header" href="#hashing-an-output-value-wdl-12">Hashing an <code>output</code> value (WDL 1.2+)</a></h3>
+<p>An <code>output</code> value will update the hasher with:</p>
+<ol>
+<li>A byte with a value of <code>14</code> to indicate an <code>output</code> variant.</li>
+<li>The <a href="#hashing-sequences">sequence</a> of (<a href="#hashing-internal-strings">key</a>, <a href="#hashing-wdl-values">value</a>)
+pairs, in insertion order.</li>
+</ol>
+<h3 id="hashing-sequences"><a class="header" href="#hashing-sequences">Hashing Sequences</a></h3>
+<p>Hashing a <em>sequence</em> will update the hasher with:</p>
+<ol>
+<li>A four byte length value in little endian order.</li>
+<li>The hash of each element in the sequence.</li>
+</ol>
+<h2 id="content-digests"><a class="header" href="#content-digests">Content Digests</a></h2>
+<p>As <code>wdl-engine</code> already calculates digests of files and directories for
+uploading files to cloud storage, the call caching implementation will make use
+of the existing content digest cache, with some improvements.</p>
+<p>Keep in mind that <code>File</code> and <code>Directory</code> values may be either local file paths
+(e.g. <code>/foo/bar.txt</code>) or remote URLs (e.g. <code>https://example.com/bar.txt</code>,
+<code>s3://foo/bar.txt</code>, etc.).</p>
+<h3 id="local-file-digests"><a class="header" href="#local-file-digests">Local File Digests</a></h3>
+<p>Calculating the content digest of a local file is as simple as feeding every
+byte of the file’s contents to a <a href="https://github.com/BLAKE3-team/BLAKE3">Blake3</a> hasher; functions that <code>mmap</code>
+large files to calculate the digest will also be utilized.</p>
+<h3 id="remote-file-digests"><a class="header" href="#remote-file-digests">Remote File Digests</a></h3>
+<p>A <code>HEAD</code> request will be made for the remote file URL.</p>
+<p>If the remote URL is for a supported cloud storage service, the response is
+checked for the appropriate metadata header (e.g. <code>x-ms-meta-content_digest</code>,
+<code>x-amz-meta-content-digest</code>, or <code>x-goog-meta-content-digest</code>) and the header is
+treated like a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>Content-Digest</code></a> header.</p>
+<p>Otherwise, the response must have either a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Digest"><code>Content-Digest</code></a>
+header or a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/ETag">strong <code>ETag</code></a> header. If the response does not have the
+required header or if the header’s value is invalid, it is treated as a failure
+to calculate the content digest.</p>
+<p>If the <code>HEAD</code> request is unsuccessful and the error is considered to be a
+“transient” failure (e.g. a 500 response), the <code>HEAD</code> request is retried
+internally up to some configurable limit. If the request is unsuccessful after
+exhausting the retries, it is treated as a failure to calculate the content
+digest.</p>
+<p>If a <code>Content-Digest</code> header was returned, the hasher is updated with:</p>
+<ul>
+<li>A <code>0</code> byte to indicate the header was <code>Content-Digest</code>.</li>
+<li>The <a href="#hashing-internal-strings">algorithm string</a> of the header.</li>
+<li>The <a href="#hashing-sequences">sequence of digest bytes</a> of the header.</li>
+</ul>
+<p>If an <code>ETag</code> header was returned, the hasher is updated with:</p>
+<ul>
+<li>A <code>1</code> byte to indicate the header was <code>ETag</code>.</li>
+<li>The <a href="#hashing-internal-strings">strong ETag header value string</a>.</li>
+</ul>
+<p>Note that Sprocket will <em>not</em> verify that the content digest reported by the
+header matches the actual content digest of the file as that requires
+downloading the file’s entire contents.</p>
+<h3 id="local-directory-digests"><a class="header" href="#local-directory-digests">Local Directory Digests</a></h3>
+<p>The content digest of a local directory is calculated by recursively walking
+the directory in a consistent order and updating a Blake3 hasher based on each
+entry of the directory.</p>
+<p>A directory’s entry is hashed with:</p>
+<ol>
+<li>The <a href="#hashing-internal-strings">relative path</a> of the directory entry.</li>
+<li>A <code>0</code> byte if the entry is a file or <code>1</code> if it is a directory.</li>
+<li>If the entry is a file, the hasher is updated with the contents of the file.</li>
+</ol>
+<p>Finally, a four byte (little endian) entry count value is written to the hasher
+before it is finalized to produce the 32 byte Blake3 content digest of the
+directory.</p>
+<p><em><strong>Note: it is an error if the directory contains a symbolic link to a
+directory that creates a cycle (i.e. to an ancestor of the directory being
+hashed).</strong></em></p>
+<h3 id="remote-directory-digests"><a class="header" href="#remote-directory-digests">Remote Directory Digests</a></h3>
+<p><code>cloud-copy</code> has the facility to walk a “directory” cloud storage URL; it uses
+the specific cloud storage API to list all objects that start with the
+directory’s prefix.</p>
+<p>The content digest of a remote directory is calculated by using <code>cloud-copy</code> to
+walk the directory in a consistent order and then updating a Blake3 hasher
+based on each entry of the directory.</p>
+<p>A directory’s entry is hashed with:</p>
+<ol>
+<li>The <a href="#hashing-internal-strings">relative path</a> of the entry from the base
+URL.</li>
+<li>The 32 byte Blake3 digest of the <a href="#remote-file-digests">remote file entry</a>.</li>
+</ol>
+<p>Finally, a four byte (little endian) entry count value is written to the hasher
+before it is finalized to produce the 32 byte Blake3 content digest of the
+directory.</p>
+<h1 id="enabling-call-caching"><a class="header" href="#enabling-call-caching">Enabling Call Caching</a></h1>
+<p>A setting in <code>sprocket.toml</code> can control whether or not call caching is
+enabled for every invocation of <code>sprocket run</code>:</p>
+<pre><code class="language-toml">[run.task]
+cache = "off|on|explicit" # defaults to `off`
+</code></pre>
+<p>The supported values for the <code>cache</code> setting are:</p>
+<ul>
+<li><code>off</code> - do not check the call cache or write new cache entries at all.</li>
+<li><code>on</code> - check the call cache and write new cache entries for all tasks except
+those that have a <code>cacheable: false</code> hint.</li>
+<li><code>explicit</code> - check the call cache and write new cache entries <em>only</em> for
+tasks that have a <code>cacheable: true</code> hint.</li>
+</ul>
+<p>Sprocket will default the setting to <code>off</code> as it safer to let users consciously
+opt-in than potentially serve stale results from the cache without the user’s
+knowledge that call caching is occurring.</p>
+<h2 id="opting-out"><a class="header" href="#opting-out">Opting Out</a></h2>
+<p>When call caching has been enabled, users may desire to opt-out of call caching
+for individual tasks or a single <code>sprocket run</code> invocation.</p>
+<h3 id="task-opt-out"><a class="header" href="#task-opt-out">Task Opt Out</a></h3>
+<p>An individual task may opt out of call caching through the use of the
+<code>cacheable</code> hint:</p>
+<pre><code class="language-wdl">hints {
+  "cacheable": false
+}
+</code></pre>
+<p>The <code>cacheable</code> hint defaults to <code>false</code> if the <code>task.cache</code> setting is
+<code>explicit</code>; otherwise, the hint defaults to <code>true</code>.</p>
+<p>When <code>cacheable</code> is <code>false</code>, the call cache is not checked prior to task
+execution and the result of the task’s execution is not cached.</p>
+<h3 id="run-opt-out"><a class="header" href="#run-opt-out">Run Opt Out</a></h3>
+<p>A single invocation of <code>sprocket run</code> may pass the <code>--no-call-cache</code> option.</p>
+<p>Doing so disables the use of the call cache for that specific run, both in
+terms of looking up results and storing results in the cache.</p>
+<h1 id="failure-modes-for-sprocket"><a class="header" href="#failure-modes-for-sprocket">Failure Modes for Sprocket</a></h1>
+<p>Sprocket currently uses a <em>fail fast</em> failure mode where Sprocket immediately
+attempts to cancel any currently executing tasks and return the error it
+encountered. This is also the behavior of the user invoking <code>Ctrl-C</code> to
+interrupt evaluation.</p>
+<p>Failing this way may cancel long-running tasks that would otherwise have
+succeeded and subsequently prevent caching results for those tasks.</p>
+<p>To better support call caching, Sprocket should be enhanced to support a <em>fail
+slow</em> failure mode (the new default), with users able to configure Sprocket to
+use the previous <em>fail fast</em> behavior when desired.</p>
+<p>With a <em>fail slow</em> failure mode, currently executing tasks are awaited to
+completion, and their successful results are cached before attempting to abort
+the run.</p>
+<p>This also changes how Sprocket handles <code>Ctrl-C</code>. Sprocket should now support
+multiple <code>Ctrl-C</code> invocations depending on its configured failure mode:</p>
+<ol>
+<li>If the configured failure mode is <em>fail slow</em>, the user invokes <code>Ctrl-C</code> and
+Sprocket prints a message informing the user that it is waiting on
+outstanding task executions to complete and to hit <code>Ctrl-C</code> again to cancel
+tasks instead. It then proceeds to wait for executing tasks to complete to
+cache successful results.</li>
+<li>The user invokes <code>Ctrl-C</code> and Sprocket prints a message informing the user
+that it is now canceling the executing tasks and to hit <code>Ctrl-C</code> again to
+immediately terminate Sprocket. It then proceeds to cancel the executing
+tasks and wait for the cancellations to occur.</li>
+<li>The user invokes <code>Ctrl-C</code> and Sprocket immediately errors with a “evaluation
+aborted” error message.</li>
+</ol>
+<p>The failure mode can be configured via <code>sprocket.toml</code>:</p>
+<pre><code class="language-toml">[run]
+fail = "slow|fast"   # Defaults to `slow`
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="wdl-task-classes"><a class="header" href="#wdl-task-classes">WDL task classes</a></h1>
+<p>This proposal introduces a “class” hint for tasks that allows users to change
+implementation-defined configurations for multiple tasks at once. This is
+particularly useful for users with specialized execution environments that
+benefit from resource requests that are more specifically-tailored to the needs
+of a task than the broad-strokes categorizations offered by task hints reserved
+by the WDL specification.</p>
+<h2 id="problem-description"><a class="header" href="#problem-description">Problem description</a></h2>
+<p>Some Sprocket backends, such as
+<a href="https://sprocket.bio/configuration/backends/lsf.html">LSF</a>, allow users to
+configure execution differently for default tasks,
+<a href="https://github.com/openwdl/wdl/blob/wdl-1.2/SPEC.md#short_task"><code>short</code></a> tasks,
+and
+<a href="https://github.com/openwdl/wdl/blob/wdl-1.2/SPEC.md#-gpu-and--fpga">GPU/FPGA</a>
+tasks. This allows, for example, CPU- and GPU-based tasks to be submitted to
+different queues. However, these are not the only dimensions along which a user
+may want to choose different backend parameters. A user may want to submit some
+CPU-based tasks to a large-memory queue, and others to a many-core queue based
+on which machine topology better supports their needs, but there is not
+currently a clear way for WDL implementations to present this choice in
+configuration.</p>
+<p>A brute-force solution is to expose backend configuration parameters through
+implementation-defined hints (preferably registered through a mechanism like a
+<a href="https://github.com/stjude-rust-labs/rfcs/pull/5">hint registry</a>), and then
+<a href="https://github.com/openwdl/wdl/blob/wdl-1.2/SPEC.md#specifying--overriding-requirements-and-hints">override those
+hints</a>
+for each relevant task in a workflow execution graph. This proposal seeks to
+ease the burden on users by introducing a layer of indirection between a set of
+desired configuration parameters and the set of tasks to which those parameters
+are applied.</p>
+<h2 id="proposed-solution"><a class="header" href="#proposed-solution">Proposed solution</a></h2>
+<p>A new optional hint, <code>class</code> of type <code>String</code> or <code>Array[String]</code>, which contains
+zero or more free-form identifiers, should be available for arbitrary
+implementation-defined behavior. In the case of Sprocket, the <code>sprocket.toml</code>
+configuration could contain sections that match classes and override backend
+configurations for corresponding tasks. For example, consider the task:</p>
+<pre><code class="language-wdl">version 1.2
+
+task hungry_4_memory {
+  input {
+    File foo
+  }
+
+  command &lt;&lt;&lt;
+  wc -l ~{foo}
+  &gt;&gt;&gt;
+
+  output {
+    Int num_lines = read_int(stdout())
+  }
+
+  requirements {
+    container: "ubuntu:latest"
+  }
+
+  hints {
+    max_memory: "2 TiB"
+    class: ["large_mem", "xlarge"]
+  }
+}
+</code></pre>
+<p>Rather than running all tasks in the entire workflow in a queue that supports a
+2 TiB job, or specifically overriding each call to <code>hungry_4_memory</code> with a
+different queue parameter, a Sprocket LSF configuration would look like this:</p>
+<pre><code class="language-toml">[[backends]]
+
+# For tasks with a "large_mem" class, run in the "large" queue
+[large]
+type = "lsf_apptainer"
+if_class = "large.*"
+default_lsf_queue.name = "large"
+default_lsf_queue.max_cpu_per_task = 128
+default_lsf_queue.max_memory_per_task = "4 TiB"
+
+# For tasks where no class selectors match, run in the "short" queue
+[default]
+type = "lsf_apptainer"
+default_lsf_queue.name = "short"
+default_lsf_queue.max_cpu_per_task = 4
+default_lsf_queue.max_memory_per_task = "16 GiB"
+</code></pre>
+<p>When picking which backend to use to execute a particular task, Sprocket would
+attempt to match any <code>class</code> hints against the regular expression defined in the
+optional <code>if_class</code> backend configuration field. If there’s a match, the
+associated backend would be used for that task, with the default backend being
+used for any tasks which fall through without matching any <code>if_class</code> fields.</p>
+<h2 id="drawbacks-1"><a class="header" href="#drawbacks-1">Drawbacks</a></h2>
+<p>A user would potentially still have to modify the WDL with <code>class</code> hints that
+suit their execution environment, though the ability to include multiple classes
+and match over them with regular expressions would hopefully lead to classes
+being somewhat reusable between engines. If modifying WDL is not feasible, the
+hint override mechanism can still be used on a task-by-task basis, and the
+ability to override an entire set of flags with a single <code>class</code> hint would
+still be nicer than making users repeat an entire configuration for each task in
+the execution graph.</p>
+<p>There is the potential for a fair amount of repetition within the
+<code>sprocket.toml</code> that would be particularly annoying if only a single field, such
+as queue name, needs to change between different classes. However, this seems
+like a worthwhile tradeoff to avoid the complexity that arises when trying to
+combine blocks of configuration, particularly if a more-specialized backend
+configuration requires unsetting an option that is present in a default backend.</p>
+<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
+<p>The
+<a href="https://github.com/miniwdl-ext/miniwdl-slurm/blob/develop/README.rst">miniwdl-slurm</a>
+plugin adds a small expression language to the <code>.cfg</code> file, so users can
+directly program predicates to distinguish when different sets of configuration
+options should be applied:</p>
+<pre><code class="language-cfg">[slurm]
+# extra arguments passed to the sbatch command (optional).
+dynamic_partition = [
+    {
+      "memory__ge": 20000000000,
+      "cpu__gt": 30,
+      "time_minutes__gt": 7200,
+      "args": "--partition highmem --comment highmem-long"
+    },
+    {
+      "memory__lt": 2000000000,
+      "time_minutes__lt": 60,
+      "args": "--comment short"
+    },
+    {
+      "args": "--comment default"
+    }
+  ]
+</code></pre>
+<p>This allows complex hierarchies of configurations without any modification to
+the WDL sources. However, the syntax is … the best it probably can be given
+the constraints, and the desired logic must be expressible as a series of
+conjunctions.</p>
+<p>The properties available for inspection by these predicates are fixed by the
+implementation: <code>cpu</code>, <code>time_minutes</code>, etc must all be hard-coded. It’s not hard
+to imagine a scenario where a user wishes to discriminate based on some other
+property of the task and ends up with a similar problem to the status quo.</p>
+<p>Finally, while it’s good to have a solution that doesn’t require changing WDL,
+it also limits the ability for the benefits of the task classification to be
+shared with other users.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="drafts"><a class="header" href="#drafts">Drafts</a></h1>
+<p>The following are candidate RFCs that are being rendered for easy review. They may still be revised. For more information please see <a href="https://github.com/stjude-rust-labs/rfcs/pulls">the associated pull request</a>.</p>
+<ul>
+<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0003-hints-registry">0003-hints-registry</a></li>
+<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0004-task-classes">0004-task-classes</a></li>
+<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/fix/ci">fix/ci</a></li>
+<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/provenance">provenance</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
