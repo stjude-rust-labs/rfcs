@@ -42,7 +42,7 @@ git fetch --all
 BRANCHES=()
 while IFS= read -r line; do
     BRANCHES+=( "$line" )
-done < <( git branch --list --all | sed 's,\*,,g' | xargs -n1 | grep "remotes/origin" | sed 's,remotes/origin/,,g' | sort | uniq | grep -v 'gh-pages|head' )
+done < <( git branch --list --all | sed 's,\*,,g' | xargs -n1 | grep "remotes/origin" | sed 's,remotes/origin/,,g' | sort | uniq | grep -v -e 'gh-pages' -e 'HEAD' )
 
 echo "== Creating Drafts File =="
 printf "# Drafts\n\n" > "${DRAFTS_FILE}"
