@@ -46,7 +46,7 @@ done < <( git branch --list --all | sed 's,\*,,g' | xargs -n1 | grep "remotes/or
 
 echo "== Creating Drafts File =="
 printf "# Drafts\n\n" > "${DRAFTS_FILE}"
-echo "The following are _candidate_ RFCs that are being rendered for easy review. They are *not* accepted St. Jude Rust Labs RFCs. For more information please see [the associated pull request](https://github.com/stjude-rust-labs/rfcs/pulls)." >> "${DRAFTS_FILE}"
+echo "The following are candidate RFCs that are being rendered for easy review. They may still be revised. For more information please see [the associated pull request](https://github.com/stjude-rust-labs/rfcs/pulls)." >> "${DRAFTS_FILE}"
 printf "\n\n" >> "${DRAFTS_FILE}"
 
 for CURRENT_BRANCH in "${BRANCHES[@]}"; do
