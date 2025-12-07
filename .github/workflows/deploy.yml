@@ -2,9 +2,10 @@ name: Continuous Deployment
 
 on:
   push:
-    branches:
-      - main 
-      - rfcs/*
+    branches-ignore:
+      - gh-pages
+      - fix/*
+      - ci/*
 
 jobs:
   deploy:

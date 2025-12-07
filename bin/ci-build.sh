@@ -23,8 +23,8 @@ function build() {
 
   printf "\n[RFC Drafts]($(basename ${_DRAFTS_FILE}))\n" >> src/SUMMARY.md
   cp ${_DRAFTS_FILE} src
-  mdbook build -d "${BRANCH_DIR}"
-  cp -R resources "${BRANCH_DIR}"
+  mdbook build -d "${_DIR}"
+  cp -R resources "${_DIR}"
   rm -rf src/
 }
 
@@ -32,7 +32,7 @@ function build() {
 STARTING_BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
 
 # Create book directory
-BOOK_DIR="./book"
+BOOK_DIR="book"
 mkdir -p "$BOOK_DIR"
 
 DRAFTS_FILE="drafts.md"
@@ -42,7 +42,7 @@ git fetch --all
 BRANCHES=()
 while IFS= read -r line; do
     BRANCHES+=( "$line" )
-done < <( git branch --list --all | sed 's,\*,,g' | xargs -n1 | grep "remotes/origin" | sed 's,remotes/origin/,,g' | sort | uniq | grep -e 'main' -e 'rfcs/' )
+done < <( git branch --list --all | sed 's,\*,,g' | xargs -n1 | grep "remotes/origin" | sed 's,remotes/origin/,,g' | sort | uniq | grep -v -e 'gh-pages' -e 'HEAD' )
 
 echo "== Creating Drafts File =="
 printf "# Drafts\n\n" > "${DRAFTS_FILE}"
