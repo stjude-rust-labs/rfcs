@@ -4,8 +4,8 @@ on:
   push:
     branches-ignore:
       - gh-pages
-      - fix/*
-      - ci/*
+      # - fix/*
+      # - ci/*
 
 jobs:
   deploy:

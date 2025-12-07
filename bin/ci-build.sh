@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -ex
 
 function build() {
   _BRANCH=$1;
@@ -23,8 +23,8 @@ function build() {
 
   printf "\n[RFC Drafts]($(basename ${_DRAFTS_FILE}))\n" >> src/SUMMARY.md
   cp ${_DRAFTS_FILE} src
+  cp -R resources src/
   mdbook build -d "${_DIR}"
-  cp -R resources "${_DIR}"
   rm -rf src/
 }
 
