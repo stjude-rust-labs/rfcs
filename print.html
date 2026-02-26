@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-837b8cda.js";
+            window.path_to_searchindex_js = "searchindex-3f2197c0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-172c4b1a.js"></script>
+        <script src="toc-070eba49.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -851,12 +851,433 @@ aborted” error message.</li>
 fail = "slow|fast"   # Defaults to `slow`
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="provenance-tracking-and-analysis-management"><a class="header" href="#provenance-tracking-and-analysis-management">Provenance Tracking and Analysis Management</a></h1>
+<h2 id="table-of-contents"><a class="header" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="#summary-2">Summary</a></li>
+<li><a href="#motivation-2">Motivation</a></li>
+<li><a href="#architecture-overview">Architecture Overview</a></li>
+<li><a href="#database-schema">Database Schema</a>
+<ul>
+<li><a href="#sqlite-configuration">SQLite Configuration</a></li>
+<li><a href="#metadata-table">Metadata Table</a></li>
+<li><a href="#invocations-table">Invocations Table</a></li>
+<li><a href="#workflows-table">Workflows Table</a></li>
+<li><a href="#index-log-table">Index Log Table</a></li>
+<li><a href="#concurrency">Concurrency</a></li>
+</ul>
+</li>
+<li><a href="#directory-structure">Directory Structure</a>
+<ul>
+<li><a href="#output-directory-layout">Output Directory Layout</a></li>
+<li><a href="#directory-behaviors">Directory Behaviors</a></li>
+</ul>
+</li>
+<li><a href="#index-functionality">Index Functionality</a>
+<ul>
+<li><a href="#index-creation">Index Creation</a></li>
+<li><a href="#symlinking-behavior">Symlinking Behavior</a></li>
+</ul>
+</li>
+<li><a href="#cli-workflow">CLI Workflow</a>
+<ul>
+<li><a href="#execution-flow">Execution Flow</a></li>
+<li><a href="#cli-flags">CLI Flags</a></li>
+<li><a href="#key-behaviors">Key Behaviors</a></li>
+</ul>
+</li>
+<li><a href="#server-mode">Server Mode</a>
+<ul>
+<li><a href="#server-configuration">Server Configuration</a></li>
+<li><a href="#execution-flow-1">Execution Flow</a></li>
+<li><a href="#rest-api-endpoints">REST API Endpoints</a></li>
+</ul>
+</li>
+<li><a href="#rationale-and-alternatives-1">Rationale and Alternatives</a>
+<ul>
+<li><a href="#why-sqlite">Why SQLite?</a></li>
+<li><a href="#future-work-postgresql-support">Future Work: PostgreSQL Support</a></li>
+<li><a href="#alternative-embedded-key-value-stores-rocksdb-lmdb">Alternative: Embedded Key-Value Stores (RocksDB, LMDB)</a></li>
+<li><a href="#alternative-filesystem-only-no-database">Alternative: Filesystem Only (No Database)</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="summary-2"><a class="header" href="#summary-2">Summary</a></h2>
+<p>This RFC proposes a comprehensive provenance tracking and analysis management system for Sprocket built on the principle of progressive disclosure. The system automatically tracks all workflow executions in a SQLite database while maintaining a dual filesystem organization: a complete provenance record preserving every execution detail in chronological directories (<code>runs/</code>), and an optional user-defined logical index (<code>index/</code>) that symlinks outputs into domain-specific hierarchies (e.g., by project or analysis type). This approach scales from simple single-workflow use cases to production analysis management systems handling thousands of samples, providing both the auditability of complete execution history and the usability of custom organization without requiring users to choose one or maintain both manually.</p>
+<h2 id="motivation-2"><a class="header" href="#motivation-2">Motivation</a></h2>
+<p>Sprocket currently focuses on executing workflows and producing outputs, but several critical aspects of production bioinformatics work remain unaddressed. The current output directory structure, organized solely by workflow name and timestamp, makes it difficult for users to find their results, particularly when managing multiple projects. While a complete provenance filesystem organized by execution time provides valuable auditability—preserving every execution detail, retry attempt, and task output in a structured hierarchy—this very completeness creates organizational complexity. Outputs are scattered across timestamped directories deep within nested task execution paths, with no logical organization by project or data type. Users need both the complete provenance record for reproducibility and a simplified, domain-specific view for everyday access. Currently, they must choose one or the other, or maintain both manually through external scripts. There is also no way to track all workflows run against a given sample or understand analysis lineage over time.</p>
+<p>Additionally, Sprocket maintains no persistent record of execution history. Users cannot query which workflows were run, when they executed, what inputs were provided, or who submitted them. This lack of provenance tracking makes it impossible to audit past analyses or understand the evolution of results. Furthermore, there is no real-time visibility into running workflows across multiple submissions, making it difficult to monitor the overall state of an analysis pipeline or identify bottlenecks.</p>
+<p>Existing solutions in the broader ecosystem fall into two categories. Lightweight engines handle execution well but leave tracking and organization to external tools that users must discover, install, and configure separately. Enterprise analysis management systems provide comprehensive tracking but require significant infrastructure to deploy, creating a barrier to entry that prevents users from simply trying them out.</p>
+<p>This RFC proposes a middle path through <a href="https://en.wikipedia.org/wiki/Progressive_disclosure"><strong>progressive disclosure</strong></a>: Sprocket provides sophisticated analysis management capabilities that activate automatically as users need them, without requiring upfront infrastructure or configuration.</p>
+<h3 id="user-journey"><a class="header" href="#user-journey">User Journey</a></h3>
+<p>A user learns about Sprocket and wants to try a yak shaving workflow. They have a yak named Fluffy who desperately needs a haircut, so they download Sprocket and run:</p>
+<pre><code class="language-bash">sprocket run yak_shaving.wdl -i defaults.json yak_name=fluffy style=mohawk
+</code></pre>
+<p>A directory called <code>out/</code> is created automatically in their current working directory. Within it, they find their workflow outputs organized in <code>out/runs/yak_shaving/&lt;timestamp&gt;/</code>, where the timestamp corresponds to when they ran the workflow. A database at <code>out/database.db</code> silently tracks the execution, but the user doesn’t need to think about it. They have their results as returned in the output JSON. This is the Sprocket “light-disclosure” experience—working results with zero configuration.</p>
+<p>The user finds this approach easy and begins to wonder if Sprocket can style all yaks in their herd. Beyond just performing the styling, the user hopes Sprocket can organize the yak satisfaction surveys for long-term safe keeping.</p>
+<p>Looking through the documentation, they discover the <code>--index-on</code> flag and adapt their workflow:</p>
+<pre><code class="language-bash">for YAK in yaks/*; do
+  sprocket run yak_shaving.wdl -i defaults.json \
+    yak_name=$YAK style=mohawk \
+    --index-on "YakProject/2025/$YAK"
+done
+</code></pre>
+<p>As these workflows complete, a new directory structure appears under <code>out/index/YakProject/2025/</code>, with each yak’s photos and satisfaction surveys organized in subdirectories by yak name. The index contains symlinks pointing back to files in <code>out/runs/</code>, so the historical execution record remains intact while the index provides the logical organization the user cares about. If they rerun a yak’s styling, the index automatically updates to point to the new results while the database’s <code>index_log</code> table preserves the complete history of what was indexed at each point in time. The entire directory structure is portable—moving the <code>out/</code> directory with <code>mv</code> preserves all relationships. With just one additional flag, they’ve unlocked organized output management across their entire herd. This is the Sprocket “medium-disclosure” experience.</p>
+<p>Now satisfied with their organized outputs, the user realizes they’d like real-time monitoring of running workflows and the ability to submit styling orders remotely from their laptop while execution happens on a shared server. They run:</p>
+<pre><code class="language-bash">sprocket server --port 8080
+</code></pre>
+<p>The HTTP server starts immediately, connecting to the existing database and making all historical runs queryable through a REST API. They can now submit workflows via HTTP and monitor progress through API queries. All workflows submitted through the API are tracked in the same database alongside CLI submissions, and all outputs appear in the same <code>out/</code> directory structure. There’s no database setup, no configuration files to manage, no migration of historical data—they simply started the server and gained remote access and monitoring capabilities.</p>
+<p>As the yak grooming business grows, the user’s team begins submitting hundreds of workflows per day from multiple servers. SQLite’s single-writer model handles this well initially, but they eventually want to scale to thousands of concurrent submissions with multiple Sprocket servers sharing a central database. At this point, they provision a PostgreSQL database and update their configuration:</p>
+<pre><code class="language-toml">[database]
+url = "postgresql://postgres:postgres@db.example.com:5432/sprocket"
+</code></pre>
+<p>Then they run a single command to transfer their existing SQLite data:</p>
+<pre><code class="language-bash">sprocket database transfer --from ./out/database.db --to postgresql://postgres:postgres@db.example.com:5432/sprocket
+</code></pre>
+<p>This transfers all historical workflow executions and index logs to PostgreSQL. The familiar output directory structure remains unchanged—<code>runs/</code> and <code>index/</code> still live on the filesystem—but the database now runs on dedicated infrastructure with MVCC-based concurrency control, enabling unlimited concurrent writers across multiple Sprocket server instances. The user has progressed from zero-configuration local execution to enterprise-scale workflow orchestration, with each transition requiring configuration only when their needs demanded it. This is the Sprocket “heavy-disclosure” experience.</p>
+<p>This progression happens naturally as the user’s needs grow. Each step builds on the previous one, with infrastructure complexity introduced only when scale demands it.</p>
+<h2 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h2>
+<p>The system consists of three independent but coordinated components sharing a common output directory and database.</p>
+<ul>
+<li>
+<p><strong>CLI Execution Mode</strong> (<code>sprocket run</code>). Direct workflow execution that initializes the output directory on first use, creates the database schema via migrations, executes workflows in-process, writes execution metadata transactionally to the database, and creates index symlinks when specified via <code>--index-on</code>.</p>
+</li>
+<li>
+<p><strong>Server Mode</strong> (<code>sprocket server</code>). An HTTP API server that initializes the output directory on first use if needed, accepts workflow submissions via REST API, executes workflows using the same engine as CLI, provides query endpoints for run history and status, and shares the database with CLI via SQLite WAL mode for concurrency.</p>
+</li>
+<li>
+<p><strong>Output directory</strong> (<code>./out/</code>). Filesystem-based storage containing <code>database.db</code> (a SQLite database tracking all executions), <code>runs/&lt;workflow&gt;/&lt;timestamp&gt;/</code> (execution directories organized by workflow and timestamp), and <code>index/</code> (optional symlinked organization created via <code>--index-on</code>).</p>
+</li>
+</ul>
+<p>All three components use identical database schema and filesystem conventions, enabling seamless interoperability. A workflow submitted via CLI is immediately visible to the server, and vice versa.</p>
+<p>To ensure consistent workflow execution behavior between CLI and server modes, we’ll refactor the current evaluation and execution code to use an actor-based architecture. A workflow manager actor will handle workflow lifecycle management, database updates, and index creation through message passing. The actor will spawn one or more Tokio tasks to execute workflows concurrently. For <code>sprocket run</code>, the actor will manage a single workflow execution task. For <code>sprocket server</code>, the same actor implementation will manage multiple concurrent workflow execution tasks, one per submitted workflow. This shared architecture ensures that workflow execution semantics, error handling, and database interactions remain identical regardless of submission method.</p>
+<h2 id="database-schema"><a class="header" href="#database-schema">Database Schema</a></h2>
+<p>The provenance database will use a simple schema optimized for common queries while keeping implementation straightforward. Each output directory will be versioned to ensure compatibility between different Sprocket releases.</p>
+<h3 id="sqlite-configuration"><a class="header" href="#sqlite-configuration">SQLite Configuration</a></h3>
+<p>Sprocket will configure SQLite with specific pragma settings to optimize for concurrent access, performance, and data integrity. These settings are divided into two categories:</p>
+<p><strong>Persistent settings</strong> (applied once when database is created):</p>
+<pre><code class="language-sql">pragma journal_mode = wal;
+pragma synchronous = normal;
+pragma temp_store = memory;
+</code></pre>
+<ul>
+<li><code>journal_mode = wal</code> enables <a href="https://www.sqlite.org/wal.html">Write-Ahead Logging</a>, allowing multiple concurrent readers with a single writer. This setting persists across all connections and provides the foundation for CLI and server to share the database.</li>
+<li><code>synchronous = normal</code> balances durability and performance in WAL mode. The database remains safe from corruption but may lose the most recent transaction in the event of a power failure or system crash.</li>
+<li><code>temp_store = memory</code> stores temporary tables in memory for better performance.</li>
+</ul>
+<p><strong>Per-connection settings</strong> (applied when opening each connection):</p>
+<pre><code class="language-sql">pragma foreign_keys = on;
+pragma busy_timeout = 5000;
+pragma cache_size = 2000;
+</code></pre>
+<ul>
+<li><code>foreign_keys = on</code> enables foreign key constraint enforcement for referential integrity.</li>
+<li><code>busy_timeout = 5000</code> configures a 5-second timeout when the database is locked. If a write cannot proceed immediately due to another concurrent write, SQLite will retry for up to 5 seconds before returning an error. This prevents spurious failures during normal concurrent access patterns.</li>
+<li><code>cache_size = 2000</code> allocates approximately 8MB for SQLite’s page cache (assuming 4KB pages), improving query performance.</li>
+</ul>
+<h3 id="metadata-table"><a class="header" href="#metadata-table">Metadata Table</a></h3>
+<p>The <code>metadata</code> table tracks the output directory schema version:</p>
+<pre><code class="language-sql">create table if not exists metadata (
+  -- Metadata key
+  key text primary key,
+  -- Metadata value
+  value text not null
+);
+
+-- Insert schema version
+insert into metadata (key, value) values ('schema_version', '1');
+</code></pre>
+<p>Sprocket checks the <code>schema_version</code> on startup and automatically migrates the database schema to the current version if needed. Migrations are applied atomically to ensure database consistency.</p>
+<h3 id="invocations-table"><a class="header" href="#invocations-table">Invocations Table</a></h3>
+<p>The <code>invocations</code> table groups related workflow submissions.</p>
+<pre><code class="language-sql">create table if not exists invocations (
+  -- Unique invocation identifier (UUID v4)
+  id text primary key,
+  -- How workflows are submitted — `cli` or `http`
+  submission_method text not null,
+  -- User or client that created the invocation
+  created_by text,
+  -- When the invocation was created
+  created_at timestamp not null
+);
+</code></pre>
+<p>Each <code>sprocket run</code> command creates its own invocation with <code>created_by</code> populated from the <code>$USER</code> environment variable or system username. A running <code>sprocket server</code> instance creates a single invocation at startup that is shared by all workflows submitted to that server.</p>
+<h3 id="workflows-table"><a class="header" href="#workflows-table">Workflows Table</a></h3>
+<p>The <code>workflows</code> table tracks individual workflow executions.</p>
+<pre><code class="language-sql">create table if not exists workflows (
+  -- Unique run identifier (UUID v4)
+  id text primary key,
+  -- A link to the invocation that created this workflow
+  invocation_id text not null,
+  -- Workflow name extracted from WDL document
+  name text not null,
+  -- Workflow source (file path, URL, or git reference)
+  source text not null,
+  -- Current execution status — `pending`, `running`, `completed`, or `failed`
+  status text not null,
+  -- JSON-serialized workflow inputs
+  inputs text,
+  -- JSON-serialized workflow outputs (`null` until completion)
+  outputs text,
+  -- Error message if status is `failed` (`null` otherwise)
+  error text,
+  -- Relative path to execution directory from `database.db` (e.g., `runs/workflow_name/2025-11-07_143022123456`)
+  execution_dir text not null,
+  -- When run record was created
+  created_at timestamp not null,
+  -- When execution started (`null` if still pending)
+  started_at timestamp,
+  -- When execution finished, success or failure (`null` if still running)
+  completed_at timestamp,
+  foreign key (invocation_id) references invocations(id)
+);
+</code></pre>
+<h3 id="index-log-table"><a class="header" href="#index-log-table">Index Log Table</a></h3>
+<p>The <code>index_log</code> table tracks the history of index symlink updates.</p>
+<pre><code class="language-sql">create table if not exists index_log (
+  -- Unique log entry identifier (UUID v4)
+  id text primary key,
+  -- Path within the index directory (e.g., `YakProject/2025/Fluffy/final_photo.jpg`)
+  index_path text not null,
+  -- Target path relative to `database.db` that the symlink points to (e.g., `runs/yak_shaving/2025-11-07_143022123456/calls/trim_and_style/attempts/0/work/final_photo.jpg`)
+  target_path text not null,
+  -- Foreign key to `workflows.id` (which workflow created this symlink)
+  workflow_id text not null,
+  -- When this symlink was created or updated
+  created_at timestamp not null,
+  foreign key (workflow_id) references workflows(id)
+);
+</code></pre>
+<p>Each time a workflow creates or updates a symlink in the index (via <code>--index-on</code>), a record is inserted into this table. For workflows that update an existing index path, both the old and new symlink targets are preserved in the log, enabling complete historical tracking. Users can query this table to determine what data was indexed at any point in time by finding the most recent log entry before a given date.</p>
+<h3 id="concurrency"><a class="header" href="#concurrency">Concurrency</a></h3>
+<p>SQLite operates in <a href="https://www.sqlite.org/wal.html">WAL (Write-Ahead Logging) mode</a>, which allows multiple concurrent readers, one writer at a time (writes are serialized), and readers to access the database during writes. This enables CLI and server to operate simultaneously on the same database without coordination. Database locks are held briefly (milliseconds per transaction), making contention unlikely for typical workflow submission rates. In the rare case of write conflicts, Sprocket will automatically retry the transaction with exponential backoff.</p>
+<h2 id="directory-structure"><a class="header" href="#directory-structure">Directory Structure</a></h2>
+<h3 id="output-directory-layout"><a class="header" href="#output-directory-layout">Output Directory Layout</a></h3>
+<p>The output directory is the fundamental unit of organization containing all workflow executions, metadata, and indexes:</p>
+<pre><code>./out/
+├─ database.db                        # SQLite provenance database
+├─ database.db-shm                    # SQLite shared memory (WAL mode)
+├─ database.db-wal                    # SQLite write-ahead log (WAL mode)
+├─ runs/                              # Workflow execution directories
+│  └─ &lt;workflow_name&gt;/                # Workflow-specific directory
+│     ├─ &lt;timestamp&gt;/                 # Individual run (YYYY-MM-DD_HHMMSSffffff)
+│     │  └─ calls/                    # Task execution directories
+│     │     └─ &lt;task_call_id&gt;/        # Task identifier (e.g., "hello-0")
+│     │        ├─ attempts/           # Retry attempts directory
+│     │        │  └─ &lt;attempt_number&gt;/  # Attempt number (0, 1, 2, ...)
+│     │        │     ├─ command       # Executed shell script
+│     │        │     ├─ stdout        # Task standard output
+│     │        │     ├─ stderr        # Task standard error
+│     │        │     └─ work/         # Task working directory
+│     │        │        └─ &lt;output_files&gt;  # Task-generated output files
+│     │        └─ tmp/                # Temporary localization files
+│     └─ _latest -&gt; &lt;timestamp&gt;/      # Symlink to most recent run (Unix only)
+└─ index/                             # Optional symlinked organization
+   └─ &lt;user_defined_path&gt;/            # Created via --index-on flag
+      └─ &lt;symlinks_to_outputs&gt;        # Symlinks to files in runs/
+</code></pre>
+<h3 id="directory-behaviors"><a class="header" href="#directory-behaviors">Directory Behaviors</a></h3>
+<ul>
+<li>On first <code>sprocket run</code> or <code>sprocket server</code> invocation, <code>./out/</code> is created if missing, <code>database.db</code> is initialized with schema migrations. If invoked via <code>sprocket run</code>, the <code>runs/&lt;workflow_name&gt;/&lt;timestamp&gt;/</code> directory structure is created for execution.</li>
+<li>Output directory location defaults to <code>./out/</code> relative to current working directory, configurable via <code>--out-dir</code> flag, <code>SPROCKET_OUTPUT_DIR</code> environment variable, or <code>~/.config/sprocket/Sprocket.toml</code>.</li>
+<li>The entire output directory is relocatable via <code>mv</code>. All paths stored in <code>database.db</code> are relative to the database file, enabling portability when the output directory is moved.</li>
+</ul>
+<h2 id="index-functionality"><a class="header" href="#index-functionality">Index Functionality</a></h2>
+<p>The index provides user-defined logical organization of outputs on top of the execution-oriented runs directory structure. On Windows, creating symlinks requires administrator privileges or <a href="https://blogs.windows.com/windowsdeveloper/2016/12/02/symlinks-windows-10/">Developer Mode</a> (Windows 10 Insiders build 14972 or later). Windows 11 allows unprivileged symlink creation without Developer Mode. If Sprocket cannot create symlinks due to insufficient permissions, index creation will fail with an error instructing the user to run with administrator privileges or enable Developer Mode. Index symlinks are explicitly requested by the user via <code>--index-on</code> and their failure prevents the expected organization from being created. The <code>_latest</code> symlink (pointing to the most recent run) will be attempted on all platforms but will emit a debug-level log message on failure rather than an error, allowing workflows to complete successfully even when symlink creation is not possible. The <code>_latest</code> symlink is a convenience feature and its absence doesn’t prevent workflow completion or results access.</p>
+<h3 id="index-creation"><a class="header" href="#index-creation">Index Creation</a></h3>
+<p>Users create indexes via the <code>--index-on</code> flag:</p>
+<pre><code class="language-bash">sprocket run yak_shaving.wdl -i inputs.json \
+  --index-on "YakProject/2025/Fluffy"
+</code></pre>
+<p>This produces:</p>
+<pre><code>./out/
+├─ runs/
+│  └─ yak_shaving/
+│     └─ 2025-11-07_143022123456/
+│        └─ calls/
+│           └─ trim_and_style/
+│              └─ attempts/
+│                 └─ 0/
+│                    └─ work/
+│                       ├─ final_photo.jpg
+│                       └─ grooming_report/
+│                          ├─ satisfaction.html
+│                          └─ style_metrics.txt
+└─ index/
+   └─ YakProject/
+      └─ 2025/
+         └─ Fluffy/
+            ├─ outputs.json         # Complete workflow outputs (all types)
+            ├─ final_photo.jpg -&gt; ../../../../runs/yak_shaving/2025-11-07_143022123456/calls/trim_and_style/attempts/0/work/final_photo.jpg
+            └─ grooming_report -&gt; ../../../../runs/yak_shaving/2025-11-07_143022123456/calls/trim_and_style/attempts/0/work/grooming_report
+</code></pre>
+<h3 id="symlinking-behavior"><a class="header" href="#symlinking-behavior">Symlinking Behavior</a></h3>
+<p>All workflow output files and directories (as declared in the WDL workflow’s <code>output</code> section) are symlinked into the index path. An <code>outputs.json</code> file containing the complete workflow outputs (including primitive types like strings, integers, and booleans that cannot be symlinked) is also written to the index path alongside the symlinks. Task-internal files not declared as workflow outputs are not indexed. File outputs are symlinked directly to the file, while directory outputs have the directory itself symlinked rather than individual files within it.</p>
+<p>When a workflow is re-run with the same <code>--index-on</code> path, the existing <code>outputs.json</code> is replaced and existing symlinks at that path are removed. New symlinks pointing to the latest run outputs are created. The index always reflects the most recent successful run for a given index path, with the complete history preserved in the <code>index_log</code> database table.</p>
+<p>Symlinks use relative paths (e.g., <code>../../../../runs/...</code>), allowing the entire <code>./out/</code> directory to be moved while preserving index functionality. If the index directory is accidentally deleted or needs to be reconstructed, users can rebuild the index from the database history:</p>
+<pre><code class="language-bash">sprocket index rebuild --out-dir ./out
+</code></pre>
+<p>This command queries the <code>index_log</code> table for the most recent entry for each distinct index path and recreates the corresponding symlinks and <code>outputs.json</code> files, restoring the index to its last known state.</p>
+<h2 id="cli-workflow"><a class="header" href="#cli-workflow">CLI Workflow</a></h2>
+<h3 id="execution-flow"><a class="header" href="#execution-flow">Execution Flow</a></h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    actor User
+    participant CLI as sprocket run
+    participant DB as database.db
+    participant FS as Filesystem
+    participant Engine as Workflow Engine
+
+    User-&gt;&gt;CLI: sprocket run yak_shaving.wdl --index-on "YakProject/2025/Fluffy"
+    CLI-&gt;&gt;FS: Check for ./out/, create if doesn't exist
+    CLI-&gt;&gt;FS: Check for database.db, create if doesn't exist
+    CLI-&gt;&gt;DB: Connect to database.db (WAL mode)
+    CLI-&gt;&gt;DB: INSERT invocation (submission_method=cli, created_by=$USER)
+    CLI-&gt;&gt;DB: INSERT workflow (status=pending)
+    CLI-&gt;&gt;FS: Create runs/yak_shaving/2025-11-07_143022/
+    CLI-&gt;&gt;DB: UPDATE workflow (status=running)
+    CLI-&gt;&gt;Engine: Execute workflow
+    Engine-&gt;&gt;FS: Write execution files (stdout, stderr, outputs)
+    Engine--&gt;&gt;CLI: Execution complete
+    CLI-&gt;&gt;DB: UPDATE workflow (status=completed, outputs=...)
+    CLI-&gt;&gt;FS: Create index symlinks at YakProject/2025/Fluffy/
+    CLI--&gt;&gt;User: Workflow complete
+</code></pre>
+<p>The output directory location is resolved from command-line flags (<code>--out-dir</code>), environment variables (<code>SPROCKET_output_dir</code>), configuration file settings, or the default <code>./out/</code>. Each CLI invocation generates a UUID for the run and creates its own invocation record with <code>created_by</code> populated from the <code>$USER</code> environment variable. Using the actor-based architecture described in the Architecture Overview, the workflow manager actor manages a single workflow execution task for the duration of the CLI command. When a workflow completes successfully, database records are updated with outputs and completion timestamp, and index symlinks are created if <code>--index-on</code> was specified. Failed workflows update the database with error information but do not create index symlinks, as there are no valid outputs to index.</p>
+<h2 id="server-mode"><a class="header" href="#server-mode">Server Mode</a></h2>
+<p>The server provides an HTTP API for submitting workflows and querying run history.</p>
+<h3 id="server-configuration"><a class="header" href="#server-configuration">Server Configuration</a></h3>
+<h3 id="execution-flow-1"><a class="header" href="#execution-flow-1">Execution Flow</a></h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    actor User
+    participant Server as sprocket server
+    participant DB as database.db
+    participant FS as Filesystem
+    participant Engine as Workflow Engine
+
+    Note over User,DB: Phase 1: Server Startup
+    User-&gt;&gt;Server: sprocket server --out-dir ./out
+    Server-&gt;&gt;FS: Check for ./out/, create if doesn't exist
+    Server-&gt;&gt;FS: Check for database.db, create if doesn't exist
+    Server-&gt;&gt;DB: Connect to database.db (WAL mode)
+    Server-&gt;&gt;DB: INSERT invocation (submission_method=http, created_by=$USER)
+    Server-&gt;&gt;Server: Start HTTP server
+    Server--&gt;&gt;User: Server running
+
+    Note over User,FS: Phase 2: Workflow Submission &amp; Execution
+    User-&gt;&gt;Server: POST /api/workflows {source, inputs, index_path}
+    Server-&gt;&gt;DB: INSERT workflow (status=pending, invocation_id=...)
+    Server--&gt;&gt;User: 201 Created {id, status}
+    Server-&gt;&gt;FS: Create runs/yak_shaving/2025-11-07_143022/
+    Server-&gt;&gt;DB: UPDATE workflow (status=running)
+    Server-&gt;&gt;Engine: Execute workflow (async)
+    Engine-&gt;&gt;FS: Write execution files (stdout, stderr, outputs)
+    User-&gt;&gt;Server: GET /api/workflows/{id}
+    Server-&gt;&gt;DB: SELECT workflow WHERE id=...
+    Server--&gt;&gt;User: 200 OK {status: running, ...}
+    Engine--&gt;&gt;Server: Execution complete
+    Server-&gt;&gt;DB: UPDATE workflow (status=completed, outputs=...)
+    Server-&gt;&gt;FS: Create index symlinks if index_path provided
+
+    Note over User,FS: Phase 3: Viewing Completed Results
+    User-&gt;&gt;Server: GET /api/workflows/{id}
+    Server-&gt;&gt;DB: SELECT workflow WHERE id=...
+    Server--&gt;&gt;User: 200 OK {status: completed, outputs: {...}}
+</code></pre>
+<p>The server resolves the output directory location from command-line flags, environment variables, configuration file settings, or the default <code>./out/</code>. On startup, it initializes the output directory and database if not present, or connects to an existing database in WAL mode for concurrent access. A single invocation record is created at server startup with <code>submission_method = 'http'</code>, and all workflows submitted to that server instance share this invocation. Using the actor-based architecture described in the Architecture Overview, the workflow manager actor spawns independent Tokio tasks for each submitted workflow, enabling concurrent execution without blocking API requests. An optional concurrency limit may be configured to control maximum parallel workflow executions based on available system resources.</p>
+<h3 id="rest-api-endpoints"><a class="header" href="#rest-api-endpoints">REST API Endpoints</a></h3>
+<h4 id="post-apiworkflows"><a class="header" href="#post-apiworkflows"><code>POST /api/workflows</code></a></h4>
+<p>Submit a new workflow for execution.</p>
+<p><strong>Request:</strong></p>
+<pre><code class="language-json">{
+  "source": "https://github.com/user/repo/yak_shaving.wdl",
+  "inputs": {
+    "yak_name": "Fluffy",
+    "style": "mohawk"
+  },
+  "index_path": "YakProject/2025/Fluffy"  // Optional
+}
+</code></pre>
+<p><strong>Response:</strong> <code>201 Created</code></p>
+<pre><code class="language-json">{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "pending",
+  "created_at": "2025-11-07T14:30:22Z"
+}
+</code></pre>
+<h4 id="get-apiworkflows"><a class="header" href="#get-apiworkflows"><code>GET /api/workflows</code></a></h4>
+<p>Query workflow executions with optional filters.</p>
+<p><strong>Request:</strong></p>
+<pre><code>GET /api/workflows?status=running&amp;name=yak_shaving&amp;limit=50
+</code></pre>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre><code class="language-json">{
+  "workflows": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "yak_shaving",
+      "status": "running",
+      "invocation_id": "660e8400-e29b-41d4-a716-446655440001",
+      "created_at": "2025-11-07T14:30:22Z",
+      "started_at": "2025-11-07T14:30:23Z"
+    }
+  ]
+}
+</code></pre>
+<h4 id="get-apiworkflowsid"><a class="header" href="#get-apiworkflowsid"><code>GET /api/workflows/{id}</code></a></h4>
+<p>Retrieve detailed information about a specific workflow execution.</p>
+<p><strong>Request:</strong></p>
+<pre><code>GET /api/workflows/550e8400-e29b-41d4-a716-446655440000
+</code></pre>
+<p><strong>Response:</strong> <code>200 OK</code></p>
+<pre><code class="language-json">{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "yak_shaving",
+  "source": "https://github.com/user/repo/yak_shaving.wdl",
+  "status": "completed",
+  "invocation_id": "660e8400-e29b-41d4-a716-446655440001",
+  "inputs": {
+    "yak_name": "Fluffy",
+    "style": "mohawk"
+  },
+  "outputs": {
+    "final_photo": "runs/yak_shaving/2025-11-07_143022123456/calls/trim_and_style/attempts/0/work/final_photo.jpg"
+  },
+  "execution_dir": "runs/yak_shaving/2025-11-07_143022123456",
+  "created_at": "2025-11-07T14:30:22Z",
+  "started_at": "2025-11-07T14:30:23Z",
+  "completed_at": "2025-11-07T14:45:10Z"
+}
+</code></pre>
+<p>CLI and server operate simultaneously on the same output directory. A workflow submitted via <code>sprocket run</code> appears in <code>GET /api/workflows</code> queries as soon as the database transaction commits. All workflows share the same database regardless of submission method.</p>
+<h2 id="rationale-and-alternatives-1"><a class="header" href="#rationale-and-alternatives-1">Rationale and Alternatives</a></h2>
+<h3 id="why-sqlite"><a class="header" href="#why-sqlite">Why SQLite?</a></h3>
+<p>The choice of SQLite as the provenance database is fundamental to achieving progressive disclosure. The database must support several key scenarios.</p>
+<ul>
+<li>Users running <code>sprocket run workflow.wdl</code> for the first time should get working provenance tracking without installing, configuring, or even thinking about a database.</li>
+<li>Multiple <code>sprocket run</code> processes must safely write to the database simultaneously, and a running <code>sprocket server</code> must be able to query historical runs created by CLI while also accepting new submissions.</li>
+<li>Moving the output directory with <code>mv</code> or <code>rsync</code> should preserve all functionality without database reconfiguration or path updates.</li>
+<li>Database operations should add negligible overhead to workflow execution, which typically takes minutes to hours.</li>
+</ul>
+<p>SQLite excels at meeting these requirements because it is embedded directly in the Sprocket binary. The database file is created automatically on first use with no user action required—there are no connection strings to configure, no server processes to start, no permissions to manage. The database is a single file (<code>database.db</code>) within the output directory, so moving the directory preserves the database without any connection reconfiguration. This filesystem-based portability is essential to the self-contained output directory design.</p>
+<p>SQLite’s Write-Ahead Logging (WAL) mode enables multiple concurrent readers with a single writer at a time, where reads never block writes and vice versa. This is sufficient for workflow submission patterns, where writes are infrequent—one per workflow execution, taking milliseconds—compared to workflow execution time of minutes to hours. Even in high-throughput environments, workflow submission rates rarely exceed one per second, while SQLite WAL mode handles <a href="https://victoria.dev/posts/sqlite-in-production-with-wal/">400 write transactions per second and thousands of reads on modest hardware</a> and <a href="https://highperformancesqlite.com/watch/wal-vs-journal-benchmarks">3,600 writes per second with 70,000 reads per second in standard benchmarks</a>. Operational simplicity is another major advantage—there’s no backup strategy beyond filesystem backups, no version compatibility issues between client and server, and no network latency or connection pooling concerns.</p>
+<p>While not a major driving factor, SQLite’s ubiquity should be considered for users who want to build custom tooling on top of the provenance database. Native language bindings exist for virtually every programming language and platform, and the file format is stable and well-documented. Users can query the database directly using standard SQLite clients, build custom analysis scripts in their preferred language, or integrate the database into dashboards without needing Sprocket-specific APIs.</p>
+<h3 id="future-work-postgresql-support"><a class="header" href="#future-work-postgresql-support">Future Work: PostgreSQL Support</a></h3>
+<p>PostgreSQL support is planned as future work to enable enterprise-scale deployments. PostgreSQL offers better concurrent write performance through <a href="https://www.postgresql.org/docs/current/mvcc-intro.html">MVCC (Multi-Version Concurrency Control)</a>, remote database access over the network, more sophisticated query optimization for complex queries, and proven scalability to millions of records. These capabilities become valuable when organizations need to run multiple Sprocket server instances sharing a central database, or when workflow submission rates exceed SQLite’s single-writer throughput.</p>
+<p>However, PostgreSQL requires separate server installation and configuration, violating the zero-configuration principle that makes Sprocket accessible to new users. Users must provision database infrastructure, manage connection strings with host, port, and credentials, and coordinate backups independently of the output directory. Network dependencies introduce new failure modes, and version compatibility between PostgreSQL server and Sprocket client becomes an operational concern. For the majority of use cases—single servers with infrequent writes and simple queries—PostgreSQL’s complexity outweighs its benefits.</p>
+<p>The implementation strategy will introduce a database abstraction layer that keeps SQLite as the default while allowing users to opt into PostgreSQL via configuration. An automatic migration tool will transfer existing SQLite databases to PostgreSQL, preserving all workflow execution history and index logs. The filesystem-based output directory structure (<code>runs/</code> and <code>index/</code>) will remain unchanged regardless of database backend, ensuring that users can migrate from SQLite to PostgreSQL without disrupting their existing workflows or file organization. This approach maintains progressive disclosure: users start with zero-configuration SQLite and migrate to PostgreSQL only when scale demands it.</p>
+<h3 id="alternative-embedded-key-value-stores-rocksdb-lmdb"><a class="header" href="#alternative-embedded-key-value-stores-rocksdb-lmdb">Alternative: Embedded Key-Value Stores (RocksDB, LMDB)</a></h3>
+<p>Embedded key-value stores like RocksDB or LMDB are appealing because they share SQLite’s zero-configuration, embedded nature while offering exceptional performance. RocksDB appears to be the strongest option, achieving <a href="https://github.com/facebook/rocksdb/wiki/Performance-Benchmarks">~86,000 writes per second for random overwrites and ~137,000-189,000 reads per second</a>, while LMDB is <a href="https://mozilla.github.io/firefox-browser-architecture/text/0017-lmdb-vs-leveldb.html">optimized for read performance with competitive write throughput</a>. Though RocksDB bulk insertion showed around ~1 million writes per second in benchmarks, workflow metadata tracking performs multiple individual transactional writes per workflow (invocation inserts, workflow record inserts and updates, index log entries), making the random overwrite performance more applicable to this use case. These systems are purpose-built for high-throughput append-heavy workloads and would handle workflow metadata operations effortlessly. However, they were rejected for this initial implementation because they complicate data access patterns without providing necessary performance benefits.</p>
+<p>The performance advantage of key-value stores is irrelevant for this use case. Workflow execution takes minutes to hours, while database writes complete in milliseconds regardless of the underlying storage engine. Even at high submission rates of one workflow per second, SQLite’s throughput of hundreds to thousands of transactions per second provides ample headroom. The bottleneck is never the database—it’s the workflow execution itself.</p>
+<p>While key-value stores do lack the familiar SQL interface that users expect when querying execution history, this is a secondary concern compared to the implementation and maintenance complexity they introduce. If future requirements reveal that SQLite’s single-writer limitation becomes a genuine bottleneck—which would require sustained submission rates exceeding hundreds per second—key-value stores would be reconsidered as a filesystem-based solution. However, such rates are unrealistic for workflow engines, and if they materialize, PostgreSQL with its MVCC support would likely be a better fit for the access patterns involved.</p>
+<h3 id="alternative-filesystem-only-no-database"><a class="header" href="#alternative-filesystem-only-no-database">Alternative: Filesystem Only (No Database)</a></h3>
+<p>A filesystem-only approach without a database was rejected because it creates filesystem stress and operational problems, particularly in HPC environments where Sprocket is likely to be deployed. This approach would store metadata in JSON files alongside workflow execution directories (e.g., <code>runs/&lt;workflow&gt;/&lt;timestamp&gt;/metadata.json</code>). While this has zero dependencies beyond the filesystem, is simple to implement, and is naturally portable, it introduces several critical issues.</p>
+<p>Storing metadata as individual files creates <a href="https://sites.google.com/nyu.edu/nyu-hpc/hpc-systems/hpc-storage/best-practices">inode exhaustion problems common in HPC environments</a>, where each workflow execution would generate multiple small metadata files. HPC filesystems often have strict inode quotas, and large numbers of small files create bottlenecks on metadata servers that degrade performance for all users of the shared filesystem. Queries require walking directory trees and parsing potentially thousands of JSON files, putting additional stress on filesystem metadata operations—the exact workload that HPC storage administrators actively discourage. There’s no standardized query interface and no efficient indexing for common queries like “show all running workflows.” Monitoring tools must implement custom file-walking logic, and race conditions emerge when updating metadata from multiple processes without database-level transaction guarantees.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="drafts"><a class="header" href="#drafts">Drafts</a></h1>
 <p>The following are candidate RFCs that are being rendered for easy review. They may still be revised. For more information please see <a href="https://github.com/stjude-rust-labs/rfcs/pulls">the associated pull request</a>.</p>
 <ul>
 <li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0003-hints-registry">0003-hints-registry</a></li>
 <li><a href="https://stjude-rust-labs.github.io/rfcs/branches/0004-task-classes">0004-task-classes</a></li>
-<li><a href="https://stjude-rust-labs.github.io/rfcs/branches/provenance">provenance</a></li>
 </ul>
 
                     </main>

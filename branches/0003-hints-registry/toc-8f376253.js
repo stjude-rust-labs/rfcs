@@ -8,7 +8,7 @@ class MDBookSidebarScrollbox extends HTMLElement {
         super();
     }
     connectedCallback() {
-        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="introduction.html">Introduction</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0001-sprocket-test.html"><strong aria-hidden="true">1.</strong> 0001-sprocket-test</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0002-call-caching.html"><strong aria-hidden="true">2.</strong> 0002-call-caching</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0004-task-classes.html"><strong aria-hidden="true">3.</strong> 0004-task-classes</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="drafts.html">RFC Drafts</a></span></li></ol>';
+        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="introduction.html">Introduction</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0001-sprocket-test.html"><strong aria-hidden="true">1.</strong> 0001-sprocket-test</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0002-call-caching.html"><strong aria-hidden="true">2.</strong> 0002-call-caching</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="0003-hints-registry.html"><strong aria-hidden="true">3.</strong> 0003-hints-registry</a></span></li><li class="chapter-item expanded "><span class="chapter-link-wrapper"><a href="drafts.html">RFC Drafts</a></span></li></ol>';
         // Set the current, active page, and reveal it if it's hidden
         let current_page = document.location.href.toString().split('#')[0].split('?')[0];
         if (current_page.endsWith('/')) {
@@ -40,14 +40,22 @@ class MDBookSidebarScrollbox extends HTMLElement {
         // Track and set sidebar scroll position
         this.addEventListener('click', e => {
             if (e.target.tagName === 'A') {
-                sessionStorage.setItem('sidebar-scroll', this.scrollTop);
+                const clientRect = e.target.getBoundingClientRect();
+                const sidebarRect = this.getBoundingClientRect();
+                sessionStorage.setItem('sidebar-scroll-offset', clientRect.top - sidebarRect.top);
             }
         }, { passive: true });
-        const sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
-        sessionStorage.removeItem('sidebar-scroll');
-        if (sidebarScrollTop) {
+        const sidebarScrollOffset = sessionStorage.getItem('sidebar-scroll-offset');
+        sessionStorage.removeItem('sidebar-scroll-offset');
+        if (sidebarScrollOffset !== null) {
             // preserve sidebar scroll position when navigating via links within sidebar
-            this.scrollTop = sidebarScrollTop;
+            const activeSection = this.querySelector('.active');
+            if (activeSection) {
+                const clientRect = activeSection.getBoundingClientRect();
+                const sidebarRect = this.getBoundingClientRect();
+                const currentOffset = clientRect.top - sidebarRect.top;
+                this.scrollTop += currentOffset - parseFloat(sidebarScrollOffset);
+            }
         } else {
             // scroll sidebar to current active section when navigating via
             // 'next/previous chapter' buttons
